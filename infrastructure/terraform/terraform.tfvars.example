@@ -1,0 +1,13 @@
+# EXAMPLE VALUES ONLY. Copy to private terraform.tfvars and replace all UUIDs.
+# No credentials or Copilot PAT belong in this file.
+subscription_id = "00000000-0000-0000-0000-000000000000"
+tenant_id = "00000000-0000-0000-0000-000000000000"
+region = "eastus2"
+name_prefix = "ossdemo"
+tags = { environment = "demo" }
+sandbox_operators = {
+  presenter = {
+    object_id = "00000000-0000-0000-0000-000000000000"
+    principal_type = "User"
+  }
+}

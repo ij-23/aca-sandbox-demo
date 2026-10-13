@@ -1,0 +1,135 @@
+# Foundation deployment and Milestone 0
+
+This guide covers the implemented Terraform foundation and prepared smoke harness. **The approved foundation is deployed: 23 created, 0 changed, 0 destroyed.** All resources were read back successfully. Azure Policy imposed a Storage networking deviation described below. No Container App or sandbox was deployed; Milestone 0 remains untested and requires PAT confirmation and separate user approval.
+
+The [README](../README.md) is the canonical customer guide. See the [compatibility ledger](./compatibility.md) for verified schemas and current blockers, and [progress](./progress.md) for test results.
+
+## What this slice creates
+
+The [Terraform root](../infrastructure/terraform/) creates a dedicated resource group, application ACR, host UAMI, Consumption-profile Container Apps Environment, workspace-based Application Insights, Log Analytics workspace, StorageV2 account, four private artifact containers, lifecycle retention, diagnostics, Sandbox Group, and scoped RBAC. It does not deploy a Container App, publish an image, create an Entra application, establish GitHub OIDC trust, or create a running sandbox.
+
+Terraform modules are grouped by resource group, registry, identity, monitoring, storage, sandbox group, and access. AzureRM 4.81.0 and AzAPI 2.13.0 are locked. Local state is the current default; no remote backend is provisioned. Keep state and saved plans private, backed up and excluded from Git. Resolve a durable locked backend before implementing GitHub Actions deployment.
+
+Storage public blob access and shared-key authentication are disabled. The approved configuration requested a public HTTPS endpoint with Entra authorization. In this deployment, inherited Azure Policy `MCAPSGovDeployPolicies` / `StorageAccount_PublicNetwork_Modify` instead forced `publicNetworkAccess` to `Disabled`. No private endpoint exists, so Blob connectivity for the future app is blocked. A separately reviewed and approved network design or policy exception is needed; neither was attempted. This is a live deviation from the plan/state body. Blob roles are assigned at each container. Log Analytics/Storage use ARM resources to avoid fetching shared keys into Terraform state. The environment sends logs through Azure Monitor diagnostics, avoiding a workspace-key connection. Application Insights disables local authentication; its exported connection string/instrumentation identifier does not grant ingestion access. The future host needs its UAMI and Monitoring Metrics Publisher role to send telemetry.
+
+## Required values and permissions
+
+| Item | Requirement |
+| --- | --- |
+| Subscription/tenant | Explicit UUIDs for the intended customer deployment; never infer them from the CLI default |
+| Region | Public-cloud region supporting both Sandboxes and Container Apps; verify provider metadata and quota |
+| Naming | A new 3–12 character lowercase alphanumeric prefix; globally unique storage/ACR names derive from it and the subscription |
+| Sandbox operators | Entra **object IDs** and principal types for credential setup and smoke execution; no automatic deployer data access |
+| Read-only planning | Sign-in to intended tenant/subscription; permission to read resource/provider metadata, role definitions and existing state resources |
+| Foundation apply | Permission to create the dedicated RG and listed resource types; permission for `Microsoft.Authorization/roleAssignments/write` at intended resource scopes. Contributor alone cannot grant RBAC; an appropriately scoped RBAC administrator or equivalent is needed |
+| Provider registration | Microsoft.App, Microsoft.ContainerRegistry, Microsoft.ManagedIdentity, Microsoft.Storage, Microsoft.OperationalInsights and Microsoft.Insights must already be registered, or their registration needs a separately approved admin action |
+| Smoke/PAT setup | Container Apps SandboxGroup Data Owner on the exact group; supported Copilot account/billing and fine-grained PAT with Copilot Requests |
+
+The app UAMI gets AcrPull at ACR, SandboxGroup Data Owner at the group, Storage Blob Data Contributor on each of four containers, and Monitoring Metrics Publisher at Application Insights. Sandbox operators receive only the group data role. This does not grant web-user access; Entra web authorization is a later gate.
+
+Provider auto-registration is explicitly disabled in both providers so a plan cannot silently register resource providers. This may expose missing registrations instead of automatically fixing them.
+
+## Local preparation and validation
+
+Run from the repository root. Python 3.13 is recommended; Terraform 1.11+ is required. Git and Node are needed for development/syntax checks. Use an isolated Python environment:
+
+```bash
+uv venv --python 3.13 .venv
+uv pip install --python .venv/bin/python -r requirements-smoke.txt
+terraform -chdir=infrastructure/terraform init -input=false
+terraform -chdir=infrastructure/terraform fmt -check -recursive
+terraform -chdir=infrastructure/terraform validate
+terraform -chdir=infrastructure/terraform test
+.venv/bin/python -m unittest discover -s scripts/tests -v
+node --check workflows/smoke/extension.mjs
+.venv/bin/python scripts/verify_environment.py
+```
+
+The Terraform tests use mock providers and the Python unit tests use explicit doubles. They do not authenticate to Azure or run Copilot. The SDK download is currently blocked in this development environment by a connection failure to files.pythonhosted.org; installation and signature verification have not passed. Do not treat Python compilation or test doubles as SDK compatibility proof.
+
+## Prepare the real deployment plan
+
+1. Copy [terraform.tfvars.example](../infrastructure/terraform/terraform.tfvars.example) to a private `terraform.tfvars` beside it, replace every placeholder and review the operator object IDs. Do not put a PAT or any credential in this file.
+2. Authenticate the Azure CLI to the intended tenant if needed. Sign-in and selecting context are user prerequisites; this implementation never changes the active subscription automatically.
+3. Run the read-only preflight with explicit identifiers:
+
+```bash
+.venv/bin/python scripts/verify_environment.py --azure \
+  --subscription-id '<subscription-uuid>' \
+  --tenant-id '<tenant-uuid>' --region '<region>'
+```
+
+This checks registration, relevant API versions/locations, role-definition presence, and local SDK signatures. It does not prove effective role-assignment permission, quota availability or live Copilot access.
+
+4. Produce and review a saved plan:
+
+```bash
+terraform -chdir=infrastructure/terraform plan -input=false -out=foundation.tfplan
+terraform -chdir=infrastructure/terraform show -no-color foundation.tfplan
+```
+
+**Current result (2026-10-12):** after explicit approval, the exact reviewed [academo foundation plan](../infrastructure/terraform/academo-swedencentral.tfplan) was applied using the existing Azure CLI authentication for Sweden Central, prefix `academo`, and signed-in User as initial operator: **23 added, 0 changed, 0 destroyed**. The private [deployment results](../.local/azure-discovery/deployment-results.md) record exact targets, verification, plan hash and the Storage policy deviation. This plan is already consumed; do not reapply it. The preparation/apply sequence here is for new deployments. These local artifacts are not distributed with the repository; new customers must supply their own values. Do not plan/apply the all-zero example subscription.
+
+5. Present that exact plan, subscription, region, names, role assignments, and expected costs for approval. Do not run apply until approved. Re-plan and obtain renewed approval if the configuration, inputs, credentials/scope, or plan changes materially.
+
+Only after that approval:
+
+```bash
+terraform -chdir=infrastructure/terraform apply foundation.tfplan
+terraform -chdir=infrastructure/terraform output
+```
+
+## Important Sandbox Group schema limitation
+
+The official stable ARM resource is `Microsoft.App/sandboxGroups@2026-07-01`, with a minimal empty properties object for an independent group. AzAPI 2.13.0 has **no embedded Sandbox Group schema**. Initial validation failed with `resource type Microsoft.App/sandboxGroups can't be found`.
+
+Only this resource sets `schema_validation_enabled = false`, following the official module's need to handle the absent schema. Its body is constrained in source to the published stable contract; the other AzAPI resources retain schema validation. The approved deployment now proves Azure accepted this minimal stable body in the selected subscription: group read-back is `Succeeded`, authenticated data-plane listing works and built-in `copilot` is Ready. This does not validate rich-preview fields or runtime execution. New customers must still verify target API registration.
+
+The foundation does **not** invent `maxSandboxCount`, `defaultTimeoutSeconds`, or egress properties in that stable contract. The official rich-preview example uses `2026-02-01-preview`. Both API versions are advertised in the selected subscription and succeeded for read-only group listing in Sweden Central. Those reads do not prove limit-field persistence or enforcement on create. Microsoft documents egress at sandbox creation and runtime; an omitted policy permits unrestricted outbound access. No persistent group-wide Terraform policy contract was verified. Group-enforced limits and persistent egress remain gates before repository evaluation. The proposed separately approved smoke runs trusted nonce-only code, not a submitted repository. Do not start the application or allow repository evaluation before these controls and the real smoke gate are resolved.
+
+## Manual Copilot credential checkpoint
+
+Follow the exact [README portal procedure](../README.md#mandatory-configure-github-copilot-pat-manually-after-terraform-creates-the-sandbox-group). Select the Terraform output group, configure GitHub Copilot with a dedicated fine-grained PAT carrying **Copilot Requests**, and confirm Configured. Never paste its value into chat, `.tfvars`, state, GitHub Actions, app settings, shell commands, or evidence. Existing sandboxes do not automatically reload a rotated token; recreate them.
+
+No provider-credential management API is called by Terraform or the smoke harness. The manual configuration itself occurs only after the user approves cloud setup. A portal badge is not Milestone 0 proof.
+
+## Prepare and approve the smoke operation
+
+First inspect the local plan-only output (zero Azure calls):
+
+```bash
+.venv/bin/python scripts/smoke_test_sandbox.py \
+  --subscription-id '<subscription-uuid>' --tenant-id '<tenant-uuid>' \
+  --resource-group '<terraform-resource-group>' \
+  --sandbox-group '<terraform-sandbox-group>' --region '<region>'
+```
+
+Then request separate approval to create, run and delete **one** temporary Copilot sandbox in that group. Its requested size is 1 vCPU / 2 GiB; the local run deadline is 300 seconds, the Copilot workflow limit is 180 seconds, its process timeout is 210 seconds, and cleanup gets a separate 90-second deadline. The workflow allows one concurrent agent, up to two total attempts, and a soft limit of two AI credits. Usage limits are not a hard billing cap.
+
+After approval, add:
+
+```text
+--execute --confirm-group /subscriptions/<subscription-uuid>/resourceGroups/<rg>/providers/Microsoft.App/sandboxGroups/<group>
+--output .local/smoke-<unique-attempt>.json
+```
+
+The harness uses AzureCliCredential constrained to the tenant. This validates the operator's Azure access and group-injected Copilot credentials; the future deployed UAMI still needs its own integration test.
+
+The smoke harness:
+
+1. Discovers `copilot` in the group's public disks and refuses a run if previous smoke-owned sandboxes exist.
+2. Persists a unique ownership label before creation and records the returned sandbox ID.
+3. Uploads the trusted [extension](../workflows/smoke/extension.mjs) into a new control repository within the sandbox. No target repository is cloned.
+4. Invokes the registered `aca-viability-smoke` workflow. An actual `ctx.agent` call must return the generated nonce and `pong`; deterministic code verifies it and records real phase boundaries. No login or token injection by the host is performed.
+5. Retrieves the fresh result, CLI version, exit code and instrumented events. It rejects wrong nonce, missing events and inconsistent workflow IDs. Raw agent logs remain inside the disposable sandbox.
+6. Deletes only the returned sandbox and exact app/nonce-label matches in `finally`, then checks their absence. Cleanup failure makes the entire smoke fail.
+
+The SDK docs disagree on some filtered-list argument names; the harness avoids those filters and compares exact labels after an unfiltered list. The prepared calls still require inspection against the installed package before live use. A lost create response is reported as ambiguous even after matched orphans are removed; an empty list cannot establish that a delayed create will never appear.
+
+Hard termination (`SIGKILL`), machine loss, and service delays can still leave an orphan. The private evidence records group, nonce and labels; an operator must inspect that exact ownership and get cleanup approval if the previous create/delete authorization does not cover it. Never delete the group or unrelated sandboxes. This slice does not claim a service-enforced lifetime limit.
+
+## Gate and next phase
+
+Pass Milestone 0 only with real credential-backed agent execution, correct result/branch evidence, and confirmed cleanup. Record actual disk/CLI/SDK versions and behavior in the compatibility ledger. The harness currently uses exec completion followed by file reads; real-time streaming is not proven.
+
+After the gate passes: build the React/FastAPI application image, approve/push it to ACR, and add the Container App/auth phase using that real digest. Terraform remains the image revision owner. Entra authorized users, GitHub OIDC trust and a durable CI state backend are still future configuration work. No local application host is required by the final design.
