@@ -1,6 +1,15 @@
 # Public GitHub repository support — implementation plan
 
-Updated: 2026-10-14. **Proposed capability; not implemented or security-verified.**
+Updated: 2026-10-14. **Adopted; implementation in progress on `feature/public-repository-support`. Public execution is not enabled.**
+
+Completed preparation: separate Terraform-managed worker/coordinator groups,
+credential-boundary probes with a positive control, one genuine cross-Sandbox
+workflow delegation, public metadata API/UI, bounded source inventory tested on
+Flask and a TypeScript library, and host-owned delegation/publication policy
+contracts. These do not complete P0/P1 or the application integration milestones.
+The next live gate requires a Copilot-only provider credential and a separate
+publisher identity; see [setup](./public-repository-setup.md). Evidence and remaining
+work are tracked in [progress](./progress.md).
 
 ## Outcome
 
@@ -47,7 +56,9 @@ For publication, prefer a separate GitHub App installation identity with short-l
 
 The new design conflicts with current fixture-only scope, same-PAT publication inside C, the prohibition on a separate publisher, and the single-service architecture. Explicitly update [AGENTS.md](../AGENTS.md), [README.md](../README.md), [architecture.md](./architecture.md) and [security.md](./security.md) when adopting the design. C remains a genuine Dynamic Workflow controlling validation and the publisher request; the publisher owns GitHub credentials and writes. Preserve one Fix confirmation and no second Publish button.
 
-This planning document does not silently supersede current execution rules or enable public execution.
+The explicit adoption section in [AGENTS.md](../AGENTS.md) supersedes the old
+fixture-only architecture constraints for this work. It does not enable public
+execution before the relevant gates pass.
 
 ## P0 — Verify isolation and API feasibility
 
@@ -100,7 +111,7 @@ This planning document does not silently supersede current execution rules or en
 - Bind trusted validation receipts to exact source SHA, patched artifact digest, policy/tool versions and attempt. A repository or AI output cannot select required checks. Test exit codes do not prove code is nonmalicious.
 - Genuine sequence: `agent.fix → apply.patch → isolated validation → publication.gate → publisher request → verify_remote → remediation.json`. Failed, missing, skipped-required or timed-out checks cause zero remote writes.
 - Publisher accepts only host-authorized receipts/artifacts, checks digest and safely materializes regular files. It performs no repository execution, uses trusted Git config with hooks/filters disabled, excludes secrets/runtime artifacts, preserves license/attribution and creates fresh history. Disable copied automation such as GitHub Actions by explicit policy and disclose exclusions.
-- Keep private `{repo}-fixed` naming initially; collisions fail without overwrite/deletion. Journal create/push intent and reconcile ambiguous responses before retrying. Verify repository ID, owner, privacy and remote SHA; report partial publication truthfully.
+- Preserve the editable private destination name (default `{repo}-fixed`), configured owner and `main` branch; collisions fail without overwrite/deletion. Journal create/push intent and reconcile ambiguous responses before retrying. Verify repository ID, owner, privacy and remote SHA; report partial publication truthfully.
 
 **Exit gate:** real multi-file Python and Node remediation/private publication succeeds; original repositories are unchanged. Failed validation, forged receipts, changed artifact digests, missing license clearance, expired consent, collisions and publication failures cannot cause unauthorized writes or false success.
 
@@ -113,7 +124,7 @@ This planning document does not silently supersede current execution rules or en
 - Keep one active run initially, enforce per-user request/run budgets, persist resource ownership intents and reconcile on timeout/cancel/restart. Blob persistence does not provide resumed job execution.
 - Scope any publisher service/identity/secret-store additions only after P0. Infrastructure work uses `terraform-builder`, inspected saved plans, existing LOCAL state/lineage and Terraform-owned image revisions. No remote-state migration or speculative provisioning.
 
-**Exit gate:** authenticated Azure dashboard demonstrates new paths, reconnect retrieves missed events, private persistence and real telemetry work, all owned disposable resources are confirmed deleted.
+**Exit gate:** authenticated Azure dashboard demonstrates new paths, reconnect retrieves missed events, private persistence and real telemetry work. Application coordinators/workers stop and remain retained by default; explicit owner cleanup verifies deletion. Disposable probes select deletion explicitly.
 
 ## P6 — Broader ecosystems and release validation
 
@@ -156,4 +167,6 @@ Roll out behind explicit capability flags: existing demo → public analysis →
 - [ ] Customer deployment, costs and security limitations are documented; LOCAL Terraform state is preserved.
 - [ ] Genuine release replay, timed demo and clean-customer deployment are verified; existing open acceptance work remains visible.
 
-This is documentation-only planning. No deployed access policy, application code, credential, cloud resource or Terraform state changes are part of this task.
+Implementation is underway under standing project authorization. Terraform changes
+use the existing LOCAL state; existing application access policy and credentials
+remain unchanged until verified activation. No universal build/fix guarantee.

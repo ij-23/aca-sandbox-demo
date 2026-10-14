@@ -2,6 +2,7 @@
 
 import asyncio
 import json
+import time
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -12,6 +13,7 @@ from fastapi.staticfiles import StaticFiles
 from .auth import EntraVerifier, Principal
 from .config import Settings
 from .contracts import Remediate, StartRun, run_id
+from .repositories import RepositoryError, resolve_repository
 from .store import BlobStore, Events, UnavailableStore
 
 
@@ -60,6 +62,8 @@ def create_app(settings=None, *, store=None, executor=None, verifier=None):
         openapi_url=None,
     )
     app.state.ready = False
+    metadata_lock = asyncio.Lock()
+    metadata_next = 0.0
 
     @app.middleware("http")
     async def boundaries(request, call_next):
@@ -130,7 +134,27 @@ def create_app(settings=None, *, store=None, executor=None, verifier=None):
             "publication_owner": settings.publication_owner,
             "publication_enabled": settings.publication_enabled,
             "retain_sandboxes": settings.retain_sandboxes,
+            "repository_modes": ["trusted_fixture"],
+            "public_metadata_enabled": True,
+            "public_execution_blockers": [
+                "Credential-free worker isolation and delegation require live verification",
+                "Separate publishing identity is not configured",
+            ],
         }
+
+    @app.post("/api/repositories/inspect")
+    async def inspect_repository(body: StartRun, principal: Principal = Depends(authenticate)):
+        # One bounded, unauthenticated GitHub metadata request chain at a time.
+        # This neither creates a run nor grants permission to execute the source.
+        nonlocal metadata_next
+        if metadata_lock.locked() or time.monotonic() < metadata_next:
+            raise HTTPException(429, "Repository lookup is limited; retry in a few seconds")
+        async with metadata_lock:
+            metadata_next = time.monotonic() + 10
+            try:
+                return (await resolve_repository(body.repository_url)).model_dump()
+            except RepositoryError as error:
+                raise HTTPException(422, str(error)) from None
 
     @app.get("/api/me")
     async def me(principal: Principal = Depends(authenticate)):
@@ -143,6 +167,8 @@ def create_app(settings=None, *, store=None, executor=None, verifier=None):
     @app.post("/api/runs", status_code=202)
     async def start(body: StartRun, principal: Principal = Depends(authenticate)):
         enabled()
+        if body.mode != "trusted_fixture":
+            raise HTTPException(409, "Public analysis/execution awaits verified worker isolation and delegation")
         return await runtime.start(body.repository_url, principal.object_id)
 
     @app.get("/api/runs/{identifier}")

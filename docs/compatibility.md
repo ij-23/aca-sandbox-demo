@@ -482,3 +482,69 @@ GitHub immutable OIDC subjects are enabled for this repository. The exact subjec
 Real deployed-UAMI orchestration cancellation and child-process interruption recovery passed with owned A/B Sandbox pairs. Production reconciliation read actual Blob records, marked interruption and deleted exact IDs. This is a runtime implementation drill, not an authenticated HTTP test or simulated result. Detection exposed a missing finish timestamp; the fix records when recovery detects interruption and preserves it across cleanup retries. See [acceptance evidence](./acceptance.md) for remaining gates.
 
 The recovery timestamp fix is live in revision0000007 (OIDC source ff10b70). Stronger drills waited for actual step.started events from each genuine workflow before cancellation/process interruption. Both passed with persisted terminal timestamps: cancellation21.58s/18 events, interruption23.784s/28 events. Independent exact-ID404 checks and group inventory prove all owned Sandboxes gone. Browser/API transport testing is a separate remaining gate.
+## Public repository preparation — 2026-10-14
+
+These results concern `feature/public-repository-support`, not an enabled public
+evaluation feature. Existing trusted-fixture evidence below is unchanged.
+
+**Infrastructure:** inspected/applied `public-workers.tfplan` (3 creates, no
+updates/deletes) and `public-coordinators.tfplan` (4 creates, no existing-resource
+updates/deletes). Worker group `sbg-academo-a3dcd3b3-workers` has no ARM identity or
+provider credentials. Coordinator group `sbg-academo-a3dcd3b3-analysis` has the
+existing ingestion identity and currently no provider credential. App and presenter
+have Data Owner scoped to each new group. Final refreshed Terraform plan: no changes.
+LOCAL lineage and consumed foundation-plan checksum preserved.
+
+**Worker identity proof:** `connections=[]`, `ports=[]`, built-in `copilot`, no
+telemetryConfig, full inspection/default-deny egress. GitHub token variables and
+selected credential files absent. `IDENTITY_ENDPOINT`/`IDENTITY_HEADER` were present
+even without group identity. Raw HTTP requests using the documented identity
+header/API to the actual endpoint returned401 for ARM, Storage and the explicit
+telemetry UAMI in the worker group; identical requests returned200 in the original
+identity-bearing group. No response body, token/header value or credential file
+was read or printed. Fixed IMDS requests timed out; external example.com returned403.
+This is a positive/negative boundary probe, not a complete hostile-code audit.
+
+References: [Sandbox group identity](https://sandboxes.azure.com/docs/sandboxes/identity),
+[identity endpoint contract](https://learn.microsoft.com/azure/container-apps/managed-identity#connect-to-azure-services-in-app-code).
+Initial probe verdicts failed conservatively on environment-variable presence;
+later code correctly distinguishes it from successful token-service responses.
+Historical evidence files were preserved, not relabeled as passing.
+
+**Genuine delegation passed:** [probe](../scripts/probe_delegation.py) created worker
+`e893215b-0a0e-4b90-8e19-efb9fc1d1f97` and coordinator
+`56920666-18a3-4c51-8efb-0df1c0cb493d`. The genuine `defineWorkflow` extension wrote
+a nonce/sequence-bound arithmetic request. The trusted host used SDK file polling,
+validated the exact request, ran fixed arithmetic through worker `exec`, and wrote
+an atomic response. The workflow consumed it, performed real `ctx.agent` inference
+and took the verified branch. CLI1.0.97 used the existing checksum-pinned setup,
+`--experimental workflow run aca-viability-smoke --args @input.json --result-file
+result.json --output-format json`, project-only extension opt-in, disabled custom
+instructions/MCPs and denied tools. Delegated operation: exit0,0.590s. Worker create
+0.810s, cleanup1.187s. Both exact-ID404 deletions confirmed. This proves a small
+delegation contract, not general A/B/C integration or publisher authorization.
+
+**Public static inventory passed:** [probe](../scripts/probe_public_inventory.py)
+downloaded/parses sources only inside worker
+`672c57b0-4b3e-4457-ab55-8a3d6b262f26`, with only codeload.github.com allowed:
+
+| Repository / pinned SHA | Regular files / bytes | Review sample | Outcome |
+| --- | --- | --- | --- |
+| pallets/flask / `d086db856be187255b8ec61ef409357393020f32` | 236 / 1,785,020 | 109 files / 524,284 bytes | Python components detected; source coverage limited |
+| sindresorhus/is / `e9c026c611c1160eaad50da00be4e676b626018f` | 18 / 1,130,762 | 17 files / 194,516 bytes | Node >=22 declaration; missing npm lockfile explicitly reported |
+
+No source build, import, tests, hooks, Copilot analysis or GitHub publication ran.
+Create0.961s, inventory0.747s, exit0, cleanup6.354s; exact ID404 verified.
+Flask initially failed due to internal symlinks. The corrected helper omits safe
+internal links with coverage reasons, never materializes them, and continues to
+reject escaping links, hardlinks, special files and duplicate/case-colliding paths.
+Archive compressed/expanded budgets are32/100MiB;10,000 regular files;1MiB/text
+file;512KiB review sample. These are application limits, not Azure service limits.
+License-file detection is not redistribution authorization. Manifest detection
+is not proof of runnable adapters. No acquired source crossed into local/CI execution.
+
+**Remaining gates:** [manual identity setup](./public-repository-setup.md), narrowed
+coordinator credential, full delegation/ownership/retention integration, worker
+telemetry via host, verified Python/Node commands, real generalized A/B/C and
+publisher, hostile-input/process/egress tests and Azure dashboard E2E. Public modes
+remain rejected by the API and by the old SDK executor.

@@ -163,7 +163,17 @@ def validate_result(result, nonce, events):
             raise ValueError("Invalid step result")
 
 
-def perform(group, path, scope, connection_id, extension=EXTENSION, *, expected_cli_version="1.0.97", pinned_cli=False):
+def perform(
+    group,
+    path,
+    scope,
+    connection_id,
+    extension=EXTENSION,
+    *,
+    expected_cli_version="1.0.97",
+    pinned_cli=False,
+    poll_hook=None,
+):
     UUID(connection_id)
     nonce = uuid4().hex
     labels = {"owner": OWNER, "smoke-run": nonce}
@@ -288,6 +298,8 @@ def perform(group, path, scope, connection_id, extension=EXTENSION, *, expected_
             evidence["poll_count"] = 0
             last_count = -1
             while time.monotonic() - t < 235:
+                if poll_hook is not None:
+                    poll_hook(sandbox, control, nonce)
                 status = json.loads(text_file(sandbox, f"{control}/status.json", 12000))
                 events = read_events(sandbox, control, nonce)
                 after = json.loads(text_file(sandbox, f"{control}/status.json", 12000))
@@ -402,7 +414,7 @@ def parser():
     return p
 
 
-def main(argv=None, *, performer=perform):
+def main(argv=None, *, performer=perform, client_factory=None, require_connection=True, plan_description=None):
     args = parser().parse_args(argv)
     UUID(args.subscription_id)
     UUID(args.tenant_id)
@@ -426,7 +438,7 @@ def main(argv=None, *, performer=perform):
                     "mode": "plan_only",
                     "scope": scope,
                     "disk": "copilot",
-                    "action": "create one sandbox, run real workflow, collect result, delete",
+                    "action": plan_description or "create one sandbox, run real workflow, collect result, delete",
                     "credential_connection_id": args.credential_connection_id,
                     "expected_cli_version": args.expected_cli_version,
                     "pinned_cli_requested": args.pinned_cli,
@@ -437,9 +449,10 @@ def main(argv=None, *, performer=perform):
         return 0
     if args.confirm_group != scope:
         raise ValueError("--confirm-group must match the approved ARM scope exactly")
-    if not args.credential_connection_id:
+    if require_connection and not args.credential_connection_id:
         raise ValueError("--credential-connection-id is required for live execution")
-    UUID(args.credential_connection_id)
+    if args.credential_connection_id:
+        UUID(args.credential_connection_id)
     if not hasattr(signal, "SIGALRM"):
         raise RuntimeError("Run this bounded smoke on Linux or macOS")
     if args.output.exists():
@@ -460,34 +473,35 @@ def main(argv=None, *, performer=perform):
     account = json.loads(subprocess.check_output(["az", "account", "show", "-o", "json"], timeout=20))
     if account["id"] != args.subscription_id or account["tenantId"] != args.tenant_id:
         raise ValueError("Select the approved cached Azure CLI subscription/tenant before execution")
-    metadata = subprocess.run(
-        [
-            "aca",
-            "sandboxgroup",
-            "credential",
-            "list",
-            "--subscription",
-            args.subscription_id,
-            "--resource-group",
-            args.resource_group,
-            "--group",
-            args.sandbox_group,
-            "--region",
-            args.region,
-            "-o",
-            "json",
-        ],
-        capture_output=True,
-        text=True,
-        timeout=40,
-    )
-    if metadata.returncode != 0:
-        raise RuntimeError("Read-only credential status check failed; output withheld")
-    if not any(
-        r["id"] == args.credential_connection_id and r["type"] == "github-copilot" and r["state"] == "Ready"
-        for r in json.loads(metadata.stdout)
-    ):
-        raise ValueError("Expected Ready github-copilot credential connection not found")
+    if require_connection:
+        metadata = subprocess.run(
+            [
+                "aca",
+                "sandboxgroup",
+                "credential",
+                "list",
+                "--subscription",
+                args.subscription_id,
+                "--resource-group",
+                args.resource_group,
+                "--group",
+                args.sandbox_group,
+                "--region",
+                args.region,
+                "-o",
+                "json",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=40,
+        )
+        if metadata.returncode != 0:
+            raise RuntimeError("Read-only credential status check failed; output withheld")
+        if not any(
+            r["id"] == args.credential_connection_id and r["type"] == "github-copilot" and r["state"] == "Ready"
+            for r in json.loads(metadata.stdout)
+        ):
+            raise ValueError("Expected Ready github-copilot credential connection not found")
     credential = DefaultAzureCredential(
         exclude_environment_credential=True,
         exclude_workload_identity_credential=True,
@@ -500,7 +514,7 @@ def main(argv=None, *, performer=perform):
         exclude_broker_credential=True,
         process_timeout=15,
     )
-    group = TelemetrySandboxGroupClient(
+    group = (client_factory or TelemetrySandboxGroupClient)(
         endpoint_for_region(args.region),
         credential,
         subscription_id=args.subscription_id,

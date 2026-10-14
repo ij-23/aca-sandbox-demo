@@ -68,6 +68,7 @@ class Orchestrator:
                     "run_id": str(uuid4()),
                     "owner_id": owner,
                     "repository_url": url,
+                    "mode": "trusted_fixture",
                     "commit_sha": sha,
                     "created_at": now(),
                     "status": "running",

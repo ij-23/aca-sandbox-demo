@@ -36,7 +36,9 @@ The approved M0-CLI97 test passed on 2026-10-14, including real Copilot AI, bran
 
 **Sandbox retention:** new application runs default to `RETAIN_SANDBOXES=true`. A/B/C are stopped and retained after execution for inspection, including unsuccessful runs. Their IDs and workflow files remain available in the Sandbox portal; use the dashboard's **Clean up** button to explicitly delete that run's Sandboxes. Restart reconciliation preserves the run's recorded retention policy. Retained resources consume quota and can incur storage charges; clean them up when inspection is finished. Previously deleted Sandboxes cannot be recovered by enabling this setting. Dedicated smoke/recovery probes still explicitly test deletion.
 
-**Current repository support:** the deployed demo accepts only the configured trusted fixture, `https://github.com/ij-23/academo-fastapi-fixture`. See the [public-repository capability plan](./docs/public-repository-plan.md) for the proposed expansion. It separates general source analysis from verified language-specific builds/remediation and requires credential isolation before arbitrary repository code execution. This capability is not yet enabled.
+**Current repository support:** the deployed demo accepts only the configured trusted fixture, `https://github.com/ij-23/academo-fastapi-fixture`. The adopted [public-repository capability plan](./docs/public-repository-plan.md) is being implemented on `feature/public-repository-support`. Worker isolation probes, genuine cross-Sandbox workflow delegation and bounded source inventory of unrelated Python/TypeScript repositories have passed. Public metadata lookup/UI and policy helpers are implemented on the branch. Public evaluation/build/fix is **not enabled or complete**; [manual credential setup and remaining integration](./docs/public-repository-setup.md) are required.
+
+The fixture-specific same-PAT and publication-in-C descriptions below document the deployed demo. The new capability uses trusted Copilot coordinators, credential-free workers and a separate publishing identity. It preserves one Fix confirmation, editable destination naming and stop-and-retain behavior.
 
 An authenticated user enters a **public GitHub repository URL** into a React dashboard. A Python/FastAPI orchestrator (hosted together with React in one Azure Container App) creates **two isolated ACA Sandboxes simultaneously** from the built-in GitHub Copilot image. Both execute **genuine Copilot Dynamic Workflows**:
 
@@ -73,6 +75,7 @@ The Sandbox Group is separate from the **Container Apps Managed Environment** ho
 | Azure Container App | One HTTPS host for React, API, SSE and orchestration |
 | User Assigned Managed Identity | App access to sandboxes and blob data without secrets |
 | ACA Sandbox Group | Group for temporary Copilot agent sandboxes; limits/egress |
+| Optional separate worker/coordinator groups | Public-repository foundation: `enable_public_workers` and `enable_public_coordinators`, both false by default; these flags do not activate public execution |
 | Azure Storage Account + private Blob containers | Persist reports, event history, diffs, replay recordings |
 | RBAC assignments | `AcrPull`, `Container Apps SandboxGroup Data Owner`, Blob data access |
 | App Insights (recommended) | App traces, metrics and failures |

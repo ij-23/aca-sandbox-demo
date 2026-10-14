@@ -1,5 +1,28 @@
 # Application architecture and current implementation
 
+## Public-repository branch (in progress)
+
+The [adopted expansion](./public-repository-plan.md) separates credential-bearing
+Copilot coordinators from workers and a future independent publisher. Optional
+Terraform groups now exist: `sbg-academo-a3dcd3b3-workers` has no identity/provider
+credential; `sbg-academo-a3dcd3b3-analysis` has the telemetry identity and awaits a
+manual Copilot-only credential. Existing fixture groups/runs remain unchanged.
+Live probes verified denied worker identity requests versus successful responses
+in the old identity-bearing group, genuine file-mediated workflow delegation,
+and bounded static inventory of two public projects. These are limited proofs,
+not full arbitrary-code or publishing acceptance.
+
+The feature branch adds authenticated metadata-only lookup at
+`POST /api/repositories/inspect`, with bounded GitHub responses, fixed URLs/no
+redirects, immutable SHA/repository ID and a global ten-second lookup cooldown.
+It performs no source execution or Sandbox creation. New run policy names are
+explicit; public analysis/execution requests remain blocked before the old
+credential-bearing executor. Source acquisition/parsing lives only in the
+worker helper. Delegation/publication contracts are preparation, not a deployed
+publisher. [Credential setup and remaining work](./public-repository-setup.md).
+
+## Deployed trusted-fixture architecture
+
 > **Current execution authorization (2026-10-14):** Project-scoped Sandbox tests/cleanup, Terraform apply, Azure deployment and GitHub publishing are authorized autonomously under [AGENTS.md](../AGENTS.md#project-execution-authorization--2026-10-14). Recurring approval checkpoints below are superseded. Technical validation, product Fix confirmation, protection of unrelated resources and the prohibition on destructive operations remain.
 
 The deployed host is one Azure Container App serving React static assets and a deterministic FastAPI API. The SDK creates disposable Copilot MicroVMs; all repository execution stays there. Successful C publication, all-role telemetry and private replay are verified. Remaining gates are authenticated transport drills and customer-install/rehearsal verification.

@@ -17,6 +17,7 @@ class StrictModel(BaseModel):
 
 class StartRun(StrictModel):
     repository_url: str = Field(max_length=250)
+    mode: Literal["trusted_fixture", "public_analysis", "public_execution"] = "trusted_fixture"
 
 
 class Remediate(StrictModel):

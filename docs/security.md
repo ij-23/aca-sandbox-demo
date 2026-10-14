@@ -4,6 +4,26 @@
 
 This is a **trusted-fixture demonstration**, not a service for arbitrary hostile repositories. A scan is not proof of safety.
 
+The approved [public-repository expansion](./public-repository-plan.md) is under
+development on a separate branch. Its metadata endpoint requires the same Entra
+authorization and does not authorize code execution. An empty allowlist never
+enables the old executor for unknown repositories. The separate worker group's
+ARM identity is null; live probes observed no GitHub token variables and HTTP401
+for default ARM/Storage and explicit telemetry-identity requests. Identical
+requests returned HTTP200 in the original group (response bodies were never read).
+Identity environment-variable presence alone was therefore not treated as proof
+of token issuance or as evidence of a platform vulnerability.
+
+Workers receive no direct telemetry identity; host-mediated worker logging still
+needs implementation/live verification. Coordinators require a new Copilot-only
+credential, and publishing requires an independent identity/store. Those manual
+inputs are [documented here](./public-repository-setup.md). No broad demo token was
+copied into the new groups. Public source inventory now omits internal symlinks
+without materializing them and rejects escaping links, hardlinks, special files,
+duplicate/case-colliding paths and expansion over its bounds. Coverage is explicit.
+These limited probes do not establish hostile-process containment, arbitrary
+network isolation, validation trust, or safe publication; those remain gated.
+
 **Current retention policy (2026-10-14):** application A/B/C Sandboxes are stopped and retained after runs, including unsuccessful/interrupted runs. Owned workflow processes are terminated before suspension so inspection does not intentionally resume unfinished publication. Stop failures remain visible and block new execution; deletion is not a fallback. Explicit authenticated, owner-scoped **Clean up** deletes the run's Sandboxes. Retained disks and their injected credentials remain sensitive; use the dedicated demo account and manually clean up after inspection. Completed retained runs survive app reconciliation. Dedicated disposable smoke/recovery tests and legacy run records retain their explicit deletion policy.
 
 ## Identity and authentication

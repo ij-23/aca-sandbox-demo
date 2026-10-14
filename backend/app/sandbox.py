@@ -88,6 +88,8 @@ class SandboxExecutor:
 
     async def run(self, value, role, emit):
         UUID(value["run_id"])
+        if value.get("mode", "trusted_fixture") != "trusted_fixture":
+            raise ValueError("Public repositories require the isolated delegated executor")
         if role not in NAMES:
             raise ValueError("Invalid role")
         nonce = uuid4().hex

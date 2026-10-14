@@ -4,6 +4,10 @@
 
 ## 0. Outcome / non-negotiable scope
 
+### Public repository expansion approved — 2026-10-14
+
+Implement [the public-repository plan](docs/public-repository-plan.md) on `feature/public-repository-support`. This supersedes fixture-only architecture constraints for the new capability: three genuine Copilot coordinator workflows may delegate work to credential-free worker Sandboxes; a separate trusted publisher may perform GitHub writes with a separate identity. Never run unknown repository code with the demo PAT or app identity. Preserve the existing trusted-fixture mode, editable private repository destination, single Fix consent, stop-and-retain policy, owner-scoped cleanup and LOCAL Terraform state. Enable each new mode only after its isolation and live integration gates pass. Manual credential setup remains outside agent automation; do independent implementation while awaiting it. No universal build/fix guarantee.
+
 ### Editable publication repository — 2026-10-14
 
 The Fix confirmation defaults to `{original-repo}-fixed` but lets the user choose a different new private repository name. Bind the validated name to the persisted approval and use it throughout Workflow C creation, push and remote verification. The configured personal owner remains fixed; reject the source destination and existing repositories, never overwrite. Git branch remains `main`. This supersedes mandatory fixed-name wording elsewhere; `{repo}-fixed` now denotes the default only.

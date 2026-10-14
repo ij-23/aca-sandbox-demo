@@ -32,6 +32,13 @@ def record():
     return dict(run_id=run, nonce=nonce, sandbox_id=identifier, role="security", labels=labels, state="running")
 
 
+@pytest.mark.parametrize("mode", ["public_analysis", "public_execution", "unknown"])
+def test_old_credential_bearing_executor_cannot_run_public_mode(mode):
+    executor = SandboxExecutor(Settings(), Ledger([]), BrokenEvents(), group=object())
+    with pytest.raises(ValueError, match="isolated delegated executor"):
+        asyncio.run(executor.run({"run_id": str(uuid4()), "mode": mode}, "build", None))
+
+
 def test_cleanup_survives_event_failure_and_requires_exact_404():
     data = record()
 
