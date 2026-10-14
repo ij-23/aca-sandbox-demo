@@ -12,11 +12,11 @@ Updated 2026-10-14. **Not all acceptance criteria are complete.** Unit tests are
 | Failed C validation gate | Previous M0-C-FAIL actual failing pytest skips every remote write | Passed |
 | Private durability |95 contiguous events,3 reports and exact diff read through deployed UAMI; private replay Blob readback | Passed |
 | Workflow telemetry | Same successful run: A11, B10, C14 records in AcademoSandboxLogs_CL | Passed |
-| UI observation/replay | A/B/C steps, running AI, results, diff/link and all95 prerecorded events observed | Passed; final release recheck pending |
+| UI observation/replay | A/B/C steps, running AI, results, diff/link and all95 prerecorded events observed | Passed; revision0000007 browser recheck pending |
 | SSE recovery | History reloaded after revision change;95 events restored, automatic connection active | Partial; explicit Last-Event-ID transport drill pending |
 | Sandbox cleanup | Exact A/B/C/probe GET404; only pre-existing protected Stopped Sandbox remains | Passed |
-| Operational failure paths | Real command timeout124 and egress allow200/deny403; local cancellation/recovery regressions | Real deployed-runtime cancellation/interruption recovery passed; HTTP-process crash/browser cancellation not exercised |
-| OIDC release + local deployment | Build-only UAMI/AcrPush and exact immutable subject; no remote state or state artifacts | Passed: OIDC run38553776354, image-only local-state apply, Healthy revision0000006 and readiness |
+| Operational failure paths | Real command timeout124 and egress allow200/deny403; local cancellation/recovery regressions | Passed at actual A/B step boundaries: cancellation21.58s, interruption23.784s, timestamps and exact404; browser cancellation/HTTP-process crash not exercised |
+| OIDC release + local deployment | Build-only UAMI/AcrPush and exact immutable subject; no remote state or state artifacts | Passed: OIDC run38556062751, image-only local-state apply, Healthy revision0000007; final plan No changes |
 | Customer/demo readiness | Canonical docs, genuine replay/provenance and technical walkthrough | Separate clean install and final15-minute rehearsal pending |
 
 The original source repository and protected Sandbox remain unchanged. Existing fixed destination must never be overwritten. No credential value is captured in these records.

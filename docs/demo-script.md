@@ -27,4 +27,4 @@ The successful destination `ij-23/academo-fastapi-fixture-fixed` now exists and 
 - One visible Fix/private-publication confirmation; C AI step observed running, then validation/gate/create/push/verify/deleted.4 tests and2 targeted tests passed.
 - Dashboard diff and verified private link inspected. Original SHA unchanged.95 private Blob events/three reports/diff verified.
 - Replay played all95 events without new Sandboxes; all owned IDs independently404.
-- Exact1080p viewport, final post-release reconnect/cancellation/restart drills and uninterrupted15-minute presenter rehearsal are not yet claimed.
+- Exact1080p viewport, final browser reconnect/cancellation checks and uninterrupted15-minute presenter rehearsal are not yet claimed. Deployed-runtime cancellation/interruption recovery at genuine A/B step boundaries passed separately; see the [acceptance matrix](./acceptance.md).

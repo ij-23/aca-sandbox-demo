@@ -8,7 +8,7 @@ The user authorized project-scoped Sandbox creation/cleanup, Terraform apply, Az
 
 **M0 and full live A/B/C publishing passed; project acceptance remains incomplete.** The corrected group PAT created/pushed the private fixed repository, C passed four tests plus two targeted regressions, and its exact remote commit was verified. The authenticated dashboard displayed all three workflows and the genuine 95-event replay. Original source and protected Sandbox remain unchanged.
 
-The OIDC release build succeeded and its digest was deployed using the existing LOCAL Terraform state: inspected plan changed only the application image (0 add / 1 update / 0 delete). State lineage is preserved; no remote backend or migration. Live cancellation/restart, explicit SSE cursor transport, final presentation rehearsal and a separate clean-subscription installation remain open. Browser testing is waiting while the user uses another Edge tab; separate clean-install subscription/tenant requested.
+The OIDC release build succeeded and its digest was deployed using the existing LOCAL Terraform state: inspected plan changed only the application image (0 add / 1 update / 0 delete). State lineage is preserved; no remote backend or migration. Live deployed-runtime cancellation and interruption recovery now pass, including actual A/B workflow execution and finish timestamps. Explicit authenticated SSE cursor transport, final presentation rehearsal and a separate clean-subscription installation remain open. Browser testing is waiting while the user uses another Edge tab; separate clean-install subscription/tenant requested.
 
 Current successful evidence: `.local/full-abc-verified.json`, `.local/post-abc-inventory.json`, `.local/telemetry-full-abc.json`, [replay provenance](../fixtures/README.md).
 
@@ -110,7 +110,7 @@ Implemented the [Terraform foundation](../infrastructure/terraform/), [smoke har
 - [x] Implement deterministic concurrent A/B orchestration, single-run admission, timeouts and per-run cleanup-failure recovery; verified with explicit unit-test doubles.
 - [x] Real SDK adapter verified through deployed A/B/C run ffe4af9f, including private publication and exact cleanup.
 - [x] Verify genuine security/build Dynamic Workflows concurrently at one immutable SHA; real AI, source verification,2 passed/2 failed pytest and conditional runtime skip observed.
-- [ ] Verify real A/B results, cancellation, partial failure, restart reconciliation and cleanup.
+- [x] Verify real A/B results and deployed-runtime cancellation/interrupted-process reconciliation with actual A/B workflow steps and exact-ID cleanup; HTTP-process crash itself was not injected.
 
 ### Milestone 4 — observability dashboard
 
@@ -142,7 +142,7 @@ Implemented the [Terraform foundation](../infrastructure/terraform/), [smoke har
 - [ ] Finish verified README, deployment/security/architecture guides, examples and OSS licensing.
 - [x] Captured95 actual A/B/C events and complete private recording; preserved provenance and inspected labelled dashboard playback through all95 events.
 - [ ] Finish and rehearse 15-minute script, screenshots and failure/replay drill.
-- [ ] Rehearse clean-customer installation, orphan cleanup and approved static teardown.
+- [ ] Verify a separate clean-customer installation; document static teardown without executing destructive operations. Actual owned-run recovery/cleanup is verified.
 - [ ] Reconcile every acceptance criterion in [AGENTS.md](../AGENTS.md).
 
 ## Autonomous platform hardening — 2026-10-13
@@ -422,3 +422,10 @@ One real sandbox lifecycle/failed-prompt test and verified cleanup now exist. No
 - Independent exact-ID GET404 for all four drill IDs; inventory contains only protected 5bf17eda-250b-4c90-9cd6-bd44a5610851, Stopped. Evidence .local/recovery-drills.json. Temporary host drill script removed.
 - Found missing finished_at on recovered runs, which permits the dashboard timer to continue. Fixed interruption-detection timestamp and preservation across cleanup retries; four focused recovery tests pass. Deploy/retest pending.
 - OIDC image revision0000006 became Healthy; deployed UAMI re-read successful C history (95 contiguous events, three reports, all ownership deleted). Post-release full-refresh Terraform plan reports No changes. Original foundation plan SHA256 unchanged.
+
+## Final recovery-fix deployment and genuine workflow drills — 2026-10-14
+
+- [CI 38556062962](https://github.com/ij-23/aca-sandbox-demo/actions/runs/38556062962) and [OIDC release 38556062751](https://github.com/ij-23/aca-sandbox-demo/actions/runs/38556062751) passed for ff10b7088c775b5ef04395ab7f526b92718eadb0. Image sha256:4b01196f20ebd2c56249f67fbf6a54cf970024e58f0adaa525e73b151c30c0d9 deployed by inspected recovery-release.tfplan: only image changed, 0 add/1 update/0 delete. Revision0000007 Healthy, readiness true. Local state lineage unchanged, serial65; final refreshed plan reports No changes.
+- Strengthened the operator drill to wait for actual step.started events from both genuine A/B workflows. Cancel run af7c23cc-25ea-4526-9f17-6c2b714b9c44 passed in21.58s with18 contiguous events and finish timestamp. Interrupt run69993543-a4b8-41d3-abb2-d621ac47aa50 passed in23.784s with28 contiguous events, explicit interruption, preserved finish timestamp and cleanup_pending false. No fabricated workflow events, C call or GitHub write.
+- All latest four owned Sandbox IDs independently returned404; the only remaining Sandbox is protected5bf17eda-250b-4c90-9cd6-bd44a5610851, Stopped. Prior successful A/B/C history remains completed/published with95 events after release. Removed the temporary operator script from the host.
+- **Remaining external gates:** Edge is actively in use outside the dashboard and automation blocked the browser cancellation action before it ran. A dedicated available dashboard window is needed for explicit authenticated SSE/browser controls, final viewport/screenshots and timed rehearsal. A separate empty subscription/tenant is needed for the mandated actual clean-customer installation. Both were requested asynchronously; no values/readiness response received. No routine project authorization is missing. Project remains INCOMPLETE against those acceptance criteria.

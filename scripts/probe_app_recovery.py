@@ -49,7 +49,13 @@ async def worker(mode, marker):
         async with asyncio.timeout(70):
             while True:
                 records = await store.ownership(value["run_id"])
-                if len(records) == 2 and all(r["state"] == "running" for r in records):
+                observed = await store.events(value["run_id"])
+                started_roles = {e["sandbox_role"] for e in observed if e["type"] == "step.started"}
+                if (
+                    len(records) == 2
+                    and all(r["state"] == "running" for r in records)
+                    and started_roles >= {"security", "build"}
+                ):
                     break
                 if value["status"] != "running":
                     raise RuntimeError("Run ended before interruption boundary")
@@ -88,6 +94,7 @@ async def recover_and_verify(identifier, mode):
             "cleanup_pending": value.get("cleanup_pending"),
             "events_contiguous": all(e["event_id"] == n for n, e in enumerate(observed, 1)),
             "interruption_event": any(e["type"] == "run.interrupted" for e in observed),
+            "workflow_started_roles": sorted({e["sandbox_role"] for e in observed if e["type"] == "step.started"}),
             "event_count": len(observed),
         }
         result["passed"] = (
@@ -98,6 +105,7 @@ async def recover_and_verify(identifier, mode):
             and not result["cleanup_pending"]
             and result["events_contiguous"]
             and bool(result["finished_at"])
+            and result["workflow_started_roles"] == ["build", "security"]
             and (mode != "interrupt" or result["interruption_event"])
         )
         return result

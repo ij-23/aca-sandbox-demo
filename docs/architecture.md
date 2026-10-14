@@ -2,12 +2,12 @@
 
 > **Current execution authorization (2026-10-14):** Project-scoped Sandbox tests/cleanup, Terraform apply, Azure deployment and GitHub publishing are authorized autonomously under [AGENTS.md](../AGENTS.md#project-execution-authorization--2026-10-14). Recurring approval checkpoints below are superseded. Technical validation, product Fix confirmation, protection of unrelated resources and the prohibition on destructive operations remain.
 
-The deployed host is one Azure Container App serving React static assets and a deterministic FastAPI API. The SDK creates disposable Copilot MicroVMs; all repository execution stays there. Successful C publication, all-role telemetry and private replay are verified. Remaining gates are final recovery-fix verification, authenticated transport drills and customer-install/rehearsal verification.
+The deployed host is one Azure Container App serving React static assets and a deterministic FastAPI API. The SDK creates disposable Copilot MicroVMs; all repository execution stays there. Successful C publication, all-role telemetry and private replay are verified. Remaining gates are authenticated transport drills and customer-install/rehearsal verification.
 
 | Layer | Verified implementation | Remaining live gate |
 | --- | --- | --- |
 | Browser/auth | Entra PKCE, authenticated A/B/C, private URL/diff, complete labelled replay | Explicit SSE transport drill, final viewport/rehearsal |
-| Orchestrator | Concurrent A/B, single Fix consent, C validation/private push, runtime cancellation/reconciliation | Final timestamp-fix deployment/retest; HTTP-process failure drill |
+| Orchestrator | Concurrent A/B, single Fix consent, C validation/private push, runtime cancellation/reconciliation | Runtime timestamp fix verified; HTTP-process failure/browser transport drill |
 | Blob | UAMI read-back of 95 contiguous events, three reports/diff, actual replay, deleted ownership | Customer-install verification |
 | Sandbox runtime | Built-in disk, genuine CLI1.0.97 workflows, bounded polling, all-role LAW ingestion, exact404 cleanup | No remaining core workflow capability blocker |
 | Terraform/release | Foundation/app/Entra/telemetry and least-scope OIDC image release; local-state image apply | Separate clean-customer install |
