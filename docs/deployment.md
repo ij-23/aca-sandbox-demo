@@ -149,7 +149,7 @@ The smoke harness:
 
 The SDK docs disagree on some filtered-list argument names; the harness avoids those filters and compares exact labels after an unfiltered list. Installed 0.1.0b4 signatures were inspected. A lost create response is reported as ambiguous even after matched orphans are removed; an empty list cannot establish that a delayed create will never appear.
 
-Hard termination (`SIGKILL`), machine loss, and service delays can still leave an orphan. The private evidence records group, nonce and labels. [cleanup_orphans.py](../scripts/cleanup_orphans.py) is inert by default: supply `--evidence <record.json>` to inspect its local scope, then `--inspect --tenant-id <id> --region <region>` for a read-only inventory. After reviewing exact ownership under the standing owned-cleanup authorization, add `--delete-id <exact-id> --confirm-group <exact-arm-id>` to delete that ID and verify GET 404. The script rechecks live labels and refuses pre-existing IDs from the evidence inventory. It handles smoke records only; application-ledger recovery runs at host startup and only deletes exact matching ownership labels. Never delete the group or unrelated Sandboxes. This slice does not claim a service-enforced lifetime limit.
+Hard termination (`SIGKILL`), machine loss, and service delays can still leave an orphan. The private evidence records group, nonce and labels. [cleanup_orphans.py](../scripts/cleanup_orphans.py) is inert by default: supply `--evidence <record.json>` to inspect its local scope, then `--inspect --tenant-id <id> --region <region>` for a read-only inventory. After reviewing exact ownership under the standing owned-cleanup authorization, add `--delete-id <exact-id> --confirm-group <exact-arm-id>` to delete that ID and verify GET 404. The script rechecks live labels and refuses pre-existing IDs from the evidence inventory. It handles smoke records only; application-ledger recovery runs at host startup, verifies exact ownership labels, and honors the persisted retention policy: new app runs stop/retain, while legacy deletion runs and explicit Clean up requests delete. Never delete the group or unrelated Sandboxes. This slice does not claim a service-enforced lifetime limit.
 
 ## Gate and next phase
 
@@ -173,7 +173,7 @@ The [release workflow](../.github/workflows/deploy.yml) uses short-lived GitHub 
 
 A completely automated Actions apply would need a trusted persistent runner accessing the same local state, with customer-managed protection and appropriate scoped permissions. None is installed or implied. The currently implemented release pipeline plus local Terraform deployment preserves one image owner and the existing state lineage.
 
-Drain all active runs and confirm owned-sandbox cleanup before a revision update.
+Drain all active runs and confirm owned Sandboxes are stopped/retained or explicitly cleaned up before a revision update. Do not delete intentionally retained Sandboxes merely to deploy.
 Single revision/min-max 1 does not prevent old/new revision overlap during rollout;
 in-process work is not durable. Do not deploy over an active demonstration.
 Azure HTTPS login and UAMI Blob/Sandbox access pass. Full A/B/C publication, durable replay and clean-customer installation remain acceptance gates.
@@ -253,3 +253,7 @@ and CLI help before a live run; cloud probes create real disposable Sandboxes.
 [smoke_workflow_runner.py](../scripts/smoke_workflow_runner.py) is a shared runtime helper,
 uploaded by both smoke tools and the production Sandbox adapter. It and the trusted
 [workflow support files](../workflows/) are required application-image content.
+
+## Retained application Sandboxes
+
+`RETAIN_SANDBOXES=true` is the application default. Each new run snapshots this policy. Completed and unsuccessful A/B/C runs terminate their owned workload processes and stop/suspend the VM for inspection; explicit **Clean up** deletes that run’s resources. Retention failures block new runs and remain visible; deletion is never an automatic fallback. Restart reconciliation preserves completed retained runs. Existing runs without a retention field preserve their legacy cleanup behavior. Retention can incur storage charges and consume group quota; manually clean up inspected runs before quota exhaustion. Changing the default does not restore already-deleted VMs. The dedicated smoke/recovery tools deliberately test disposable deletion.

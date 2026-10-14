@@ -18,6 +18,7 @@ class Orchestrator:
         self.active = False
         self.tasks: dict[str, asyncio.Task] = {}
         self.cleanup_failures: set[str] = set()
+        self.cleanup_requests: set[str] = set()
 
     @property
     def cleanup_failed(self):
@@ -31,6 +32,7 @@ class Orchestrator:
                 "running",
                 "remediating",
                 "cleanup_failed",
+                "retention_failed",
             ):
                 value["status"] = "interrupted"
                 # This is when interruption was detected, not an invented crash
@@ -45,7 +47,7 @@ class Orchestrator:
                     except Exception:
                         value["event_delivery_failed"] = True
                     finally:
-                        await self._cleanup(value)
+                        await self._finalize(value)
                 except Exception:
                     failures.append(value["run_id"])
         if failures:
@@ -72,6 +74,7 @@ class Orchestrator:
                     "reports": {},
                     "remediation_attempted": False,
                     "cleanup_pending": True,
+                    "retain_sandboxes": self.settings.retain_sandboxes,
                 }
                 await self.store.save_run(value)
                 await self.events.emit(value["run_id"], "system", "run.started", commit_sha=sha, repository_url=url)
@@ -116,7 +119,8 @@ class Orchestrator:
             async with asyncio.timeout(90):
                 await self.executor.cleanup(value)
             value["cleanup_pending"] = False
-            if value["status"] == "cleanup_failed":
+            value["retained_sandbox_ids"] = []
+            if value["status"] in ("cleanup_failed", "retention_failed"):
                 value["status"] = "interrupted"
             await self.store.save_run(value)
             self.cleanup_failures.discard(value["run_id"])
@@ -134,13 +138,43 @@ class Orchestrator:
             value["event_delivery_failed"] = True
             await self.store.save_run(value)
 
+    async def _finalize(self, value):
+        if value["run_id"] in self.cleanup_requests:
+            value["cleanup_requested"] = True
+        # Missing policy means a legacy run: preserve its original cleanup contract.
+        if (
+            not value.get("retain_sandboxes", False)
+            or value.get("cleanup_requested", False)
+            or value["run_id"] in self.cleanup_requests
+        ):
+            await self._cleanup(value)
+            return
+        try:
+            async with asyncio.timeout(90):
+                value["retained_sandbox_ids"] = await self.executor.retain(value)
+            value["cleanup_pending"] = False
+            await self.store.save_run(value)
+            self.cleanup_failures.discard(value["run_id"])
+        except Exception:
+            # Never silently delete a Sandbox when stopping/retention fails.
+            value["status"] = "retention_failed"
+            value["cleanup_pending"] = True
+            self.cleanup_failures.add(value["run_id"])
+            await self.store.save_run(value)
+            raise
+        try:
+            await self.events.emit(value["run_id"], "system", "retention.completed")
+        except Exception:
+            value["event_delivery_failed"] = True
+            await self.store.save_run(value)
+
     async def _evaluate(self, value, remediation=False):
         try:
             async with asyncio.timeout(self.settings.max_run_seconds):
                 if remediation:
                     await self._role(value, "remediation")
                 else:
-                    # TaskGroup cancels the peer on failure; executor owns each sandbox's finally cleanup.
+                    # Drain/cancel both roles before stopping or deleting their Sandboxes.
                     async with asyncio.TaskGroup() as group:
                         for role in ("security", "build"):
                             group.create_task(self._role(value, role))
@@ -153,9 +187,8 @@ class Orchestrator:
             value["status"] = "failed"
         finally:
             try:
-                await self._cleanup(value)
+                await self._finalize(value)
             except Exception:
-                value["status"] = "cleanup_failed"
                 self.cleanup_failures.add(value["run_id"])
             value["finished_at"] = now()
             try:
@@ -196,6 +229,7 @@ class Orchestrator:
                     approval=approval.model_dump(),
                     finding=finding,
                     cleanup_pending=True,
+                    cleanup_requested=False,
                 )
                 await self.store.save_run(value)
                 await self.events.emit(
@@ -214,13 +248,19 @@ class Orchestrator:
     async def cancel(self, value):
         task = self.tasks.get(value["run_id"])
         if task:
-            task.cancel()
-            await task
+            self.cleanup_requests.add(value["run_id"])
+            try:
+                task.cancel()
+                await task
+            finally:
+                self.cleanup_requests.discard(value["run_id"])
         else:
             async with self.admission:
                 if self.active:
                     raise HTTPException(409, "An active run holds the cleanup slot")
                 value = await self.store.get_run(value["run_id"])
+                value["cleanup_requested"] = True
+                await self.store.save_run(value)
                 await self._cleanup(value)
         return await self.store.get_run(value["run_id"])
 

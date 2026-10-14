@@ -132,11 +132,14 @@ class SandboxExecutor:
                 raise ValueError("Unexpected Sandbox connection/ports")
             await emit("sandbox.running", sandbox_id=sandbox.sandbox_id)
             control = f"/tmp/academo-{nonce}"
+            record["control_directory"] = control
+            await self.store.save_ownership(record)
             extension_name = NAMES[role]
             await self.checked_exec(
                 sandbox, f"mkdir -p {control}/.github/extensions/{extension_name} && git -C {control} init -q", 10
             )
             files = {
+                "terminate_workload.py": WORKFLOWS / "shared/terminate_workload.py",
                 f".github/extensions/{extension_name}/extension.mjs": WORKFLOWS / extension_name / "extension.mjs",
                 ".github/runtime.mjs": WORKFLOWS / "shared/runtime.mjs",
                 "operations.py": WORKFLOWS / "shared/operations.py",
@@ -253,13 +256,90 @@ class SandboxExecutor:
                 if isinstance(result, BaseException):
                     raise result
 
-    async def _cleanup_record(self, value, record):
-        if record["state"] == "deleted":
-            return
-        if record["state"] == "prepared":
-            record["state"] = "deleted"  # No create request was started.
-            await self.store.save_ownership(record)
-            return
+    async def retain(self, value):
+        """Stop owned Sandboxes for inspection; deletion is never a fallback."""
+        lock = self.locks.setdefault(value["run_id"], asyncio.Lock())
+        async with lock:
+            records = await self.store.ownership(value["run_id"])
+            results = await asyncio.gather(
+                *(self._retain_record(value, record) for record in records), return_exceptions=True
+            )
+            for result in results:
+                if isinstance(result, BaseException):
+                    raise result
+            return sorted({identifier for result in results for identifier in result})
+
+    async def _retain_record(self, value, record):
+        if record["state"] in ("deleted", "prepared"):
+            return []
+        retained = []
+        for identifier in await self._owned_ids(value, record):
+            sandbox = self.group.get_sandbox_client(identifier)
+            try:
+                model = await self.call(sandbox.get)
+            except ResourceNotFoundError:
+                continue  # Externally deleted; never recreate or claim retention.
+            if not all((model.labels or {}).get(k) == v for k, v in record["labels"].items()):
+                raise ValueError("Refusing stop after ownership mismatch")
+            already_retained = record["state"] == "retained" and str(model.state).lower() in (
+                "stopped",
+                "suspended",
+                "idle",
+            )
+            control = record.get("control_directory")
+            if control and not record.get("workload_stopped"):
+                if control != f"/tmp/academo-{record['nonce']}":
+                    raise ValueError("Invalid control directory in ownership ledger")
+                # SDK exec can resume an auto-suspended VM. Always re-read state
+                # and stop again afterward; interrupted work must not resume later.
+                try:
+                    await self.checked_exec(
+                        sandbox,
+                        f"cd / && if test -f {control}/terminate_workload.py; then "
+                        f"python3 {control}/terminate_workload.py {control}; fi",
+                        15,
+                    )
+                    record["workload_stopped"] = True
+                    await self.store.save_ownership(record)
+                except Exception:
+                    # Contain work even if termination fails; keep the failure
+                    # visible and retry termination, never delete as a fallback.
+                    await self.call(sandbox.stop)
+                    raise
+                model = await self.call(sandbox.get)
+            if str(model.state).lower() not in ("stopped", "suspended", "idle"):
+                try:
+                    await self.events.emit(value["run_id"], record["role"], "sandbox.stopping", sandbox_id=identifier)
+                except Exception:
+                    value["event_delivery_failed"] = True
+                await self.call(sandbox.stop)
+                for _ in range(30):
+                    model = await self.call(sandbox.get)
+                    if str(model.state).lower() in ("stopped", "suspended", "idle"):
+                        break
+                    await asyncio.sleep(1)
+                else:
+                    raise TimeoutError("Exact-ID stop not confirmed; Sandbox retained for operator attention")
+            retained.append(identifier)
+            if already_retained:
+                continue
+            try:
+                await self.events.emit(
+                    value["run_id"],
+                    record["role"],
+                    "sandbox.retained",
+                    sandbox_id=identifier,
+                    state=model.state,
+                    reason="Stopped for inspection; use Clean up to delete",
+                )
+            except Exception:
+                value["event_delivery_failed"] = True
+        record["state"] = "retained" if retained else "deleted"
+        record["retained_ids"] = retained
+        await self.store.save_ownership(record)
+        return retained
+
+    async def _owned_ids(self, value, record):
         labels = record["labels"]
         if labels != {
             "owner": OWNER,
@@ -275,6 +355,17 @@ class SandboxExecutor:
         ids = {r.id for r in matches}
         if record["sandbox_id"]:
             ids.add(record["sandbox_id"])
+        return ids
+
+    async def _cleanup_record(self, value, record):
+        if record["state"] == "deleted":
+            return
+        if record["state"] == "prepared":
+            record["state"] = "deleted"  # No create request was started.
+            await self.store.save_ownership(record)
+            return
+        ids = await self._owned_ids(value, record)
+        labels = record["labels"]
         for identifier in ids:
             sandbox = self.group.get_sandbox_client(identifier)
             try:

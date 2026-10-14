@@ -1,10 +1,10 @@
 import { PublicClientApplication } from '@azure/msal-browser';
 
-export type Config = {tenant_id: string; spa_client_id: string; api_scope: string; live_execution_enabled: boolean; allowed_repositories: string[]; publication_owner: string; publication_enabled: boolean};
+export type Config = {tenant_id: string; spa_client_id: string; api_scope: string; live_execution_enabled: boolean; allowed_repositories: string[]; publication_owner: string; publication_enabled: boolean; retain_sandboxes?: boolean};
 export type Event = {event_id: number; run_id: string; timestamp: string; sandbox_role: string; sandbox_id: string | null; type: string; step_id: string | null; payload: Record<string, unknown>};
 export type Finding = {id:string; severity:string; file:string; line:number; explanation:string; recommendation:string; verification_status:string; evidence:string; confidence:string};
 export type Report = {status:string; tests_passed?:number; tests_failed?:number; tests_skipped?:number; health?:string; findings?:Finding[]; checks?:{name:string; status:string; exit_code:number|null; duration_ms:number; detail:string}[]; limitations:string[]; diff?:string; publication_status?:string; fixed_repository_url?:string; fixed_commit_sha?:string};
-export type Run = {run_id:string; repository_url:string; commit_sha:string; status:string; created_at:string; finished_at?:string; remediation_attempted:boolean; event_delivery_failed?:boolean; cleanup_pending?:boolean; reports:Record<string,Report>};
+export type Run = {run_id:string; repository_url:string; commit_sha:string; status:string; created_at:string; finished_at?:string; remediation_attempted:boolean; event_delivery_failed?:boolean; cleanup_pending?:boolean; retained_sandbox_ids?:string[]; reports:Record<string,Report>};
 
 let identity: PublicClientApplication | undefined;
 let scope = '';

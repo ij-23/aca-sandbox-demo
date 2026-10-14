@@ -146,3 +146,83 @@ def test_event_failure_before_create_has_no_orphan(monkeypatch):
     executor = SandboxExecutor(Settings(), Ledger([data]), BrokenEvents(), group=object())
     asyncio.run(executor.cleanup({"run_id": data["run_id"]}))
     assert data["state"] == "deleted"
+
+
+def test_retention_stops_and_verifies_without_deletion_even_if_events_fail():
+    data = record()
+
+    class Sandbox:
+        state = "Running"
+        stops = 0
+
+        def get(self):
+            return SimpleNamespace(labels=data["labels"], state=self.state)
+
+        def stop(self):
+            self.stops += 1
+            self.state = "Stopped"
+
+        def delete(self):
+            pytest.fail("Retention must never delete")
+
+    sandbox = Sandbox()
+    group = SimpleNamespace(list_sandboxes=lambda: [], get_sandbox_client=lambda _: sandbox)
+    executor = SandboxExecutor(Settings(), Ledger([data]), BrokenEvents(), group=group)
+    value = {"run_id": data["run_id"]}
+    assert asyncio.run(executor.retain(value)) == [data["sandbox_id"]]
+    assert data["state"] == "retained" and sandbox.stops == 1
+    assert value["event_delivery_failed"]
+    assert asyncio.run(executor.retain(value)) == [data["sandbox_id"]]
+    assert sandbox.stops == 1
+
+
+def test_retention_refuses_unrelated_sandbox_and_preserves_stop_failure():
+    data = record()
+    sandbox = SimpleNamespace(
+        get=lambda: SimpleNamespace(labels={}, state="Running"),
+        stop=lambda: pytest.fail("Must not stop unrelated Sandbox"),
+        delete=lambda: pytest.fail("Must not delete"),
+    )
+    executor = SandboxExecutor(
+        Settings(),
+        Ledger([data]),
+        BrokenEvents(),
+        group=SimpleNamespace(list_sandboxes=lambda: [], get_sandbox_client=lambda _: sandbox),
+    )
+    with pytest.raises(ValueError, match="ownership mismatch"):
+        asyncio.run(executor.retain({"run_id": data["run_id"]}))
+    sandbox.get = lambda: SimpleNamespace(labels=data["labels"], state="Running")
+
+    def failed_stop():
+        raise OSError("TEST DOUBLE: stop unavailable")
+
+    sandbox.stop = failed_stop
+    with pytest.raises(OSError):
+        asyncio.run(executor.retain({"run_id": data["run_id"]}))
+    assert data["state"] == "running"
+
+
+def test_explicit_cleanup_deletes_previously_retained_sandbox():
+    data = record()
+    data["state"] = "retained"
+
+    class Sandbox:
+        deleted = False
+
+        def get(self):
+            if self.deleted:
+                raise ResourceNotFoundError("TEST DOUBLE")
+            return SimpleNamespace(labels=data["labels"], state="Stopped")
+
+        def delete(self):
+            self.deleted = True
+
+    sandbox = Sandbox()
+    executor = SandboxExecutor(
+        Settings(),
+        Ledger([data]),
+        BrokenEvents(),
+        group=SimpleNamespace(list_sandboxes=lambda: [], get_sandbox_client=lambda _: sandbox),
+    )
+    asyncio.run(executor.cleanup({"run_id": data["run_id"]}))
+    assert sandbox.deleted and data["state"] == "deleted"

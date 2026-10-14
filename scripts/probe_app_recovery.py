@@ -13,6 +13,7 @@ import subprocess
 import sys
 import tempfile
 import time
+from dataclasses import replace
 from pathlib import Path
 
 from app.config import Settings
@@ -22,7 +23,8 @@ from app.store import BlobStore, Events
 
 
 def components(identifier=None):
-    settings = Settings.from_env()
+    # This explicit disposable drill verifies deletion; ordinary app runs retain.
+    settings = replace(Settings.from_env(), retain_sandboxes=False)
     if not settings.live_execution_enabled or not settings.managed_identity_client_id:
         raise RuntimeError("Requires the configured Azure host managed identity")
 

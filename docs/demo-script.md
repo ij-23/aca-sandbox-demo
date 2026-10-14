@@ -10,7 +10,7 @@
 | 5–9 | Expand both workflow timelines and command output. | A static review, B build/tests/health, real conditional branches and captured exit codes |
 | 9–11 | Read findings and validation report. | Verified versus unverified findings; skipped checks and limitations; no blanket safety claim |
 | 11–13 | Select a verified finding and approve Fix Vulnerability once. | C timeline through fix, validate, publication gate, create, push, remote verification; private destination URL/SHA |
-| 13–14 | Open the new private repository and inspect diff/commit. | Original unchanged; verified destination; all owned sandbox deletions |
+| 13–14 | Open the new private repository and inspect diff/commit. | Original unchanged; verified destination; stopped/retained Sandbox IDs; optional explicit Clean up |
 | 14–15 | Explain customer deployment/manual credential checkpoints and production redesign. | Real timings, retained reports, short-lived PAT/account, cleanup |
 
 Keep an actual successful A/B/C recording as fallback. The dashboard replay path requires stored sandbox-backed workflow evidence and labels playback **REPLAY · PRERECORDED**. It performs no sandbox or GitHub write. The [real event fixture](../fixtures/README.md) records the successful run.

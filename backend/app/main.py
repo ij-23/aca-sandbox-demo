@@ -129,6 +129,7 @@ def create_app(settings=None, *, store=None, executor=None, verifier=None):
             "allowed_repositories": settings.allowed_repositories,
             "publication_owner": settings.publication_owner,
             "publication_enabled": settings.publication_enabled,
+            "retain_sandboxes": settings.retain_sandboxes,
         }
 
     @app.get("/api/me")

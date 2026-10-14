@@ -66,7 +66,11 @@ def test_concurrent_roles_and_single_run_admission():
 
         store, executor = MemoryStore(), Executor()
         runtime = Orchestrator(
-            Settings(allowed_repositories=("https://github.com/a/b",)), store, Events(store, 100), executor, resolver
+            Settings(allowed_repositories=("https://github.com/a/b",), retain_sandboxes=False),
+            store,
+            Events(store, 100),
+            executor,
+            resolver,
         )
         value = await runtime.start("https://github.com/a/b", "test-owner")
         with pytest.raises(HTTPException) as error:

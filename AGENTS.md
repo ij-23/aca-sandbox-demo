@@ -4,6 +4,12 @@
 
 ## 0. Outcome / non-negotiable scope
 
+### Sandbox retention decision — 2026-10-14
+
+Application-created A/B/C Sandboxes must **not be automatically deleted when a run ends**. Default `RETAIN_SANDBOXES=true`: terminate owned workflow processes, stop/suspend the Sandbox, verify its state and retain its ID/files for inspection. This applies to normal, failed, timed-out and interrupted runs; restart reconciliation honors each run's persisted policy. Stop failures remain visible and block new execution; never silently fall back to deletion. The authorized user's **Clean up** action explicitly deletes only that run's owned Sandboxes, with exact-ID deletion verification. Retention consumes quota and may incur storage charges. The protected pre-existing Sandbox remains untouched.
+
+This decision supersedes automatic end-of-run deletion requirements elsewhere in this file and older demo documentation. Dedicated disposable smoke/recovery probes may explicitly select deletion to verify cleanup; they must not change application-run retention. Preserve genuine historical replay as recorded. Do not introduce automatic age-based deletion of retained Sandboxes.
+
 Build a polished **15-minute live demo** where an authenticated user submits a public GitHub repository URL; a deterministic FastAPI orchestrator creates **two ACA Sandboxes in parallel** using the **built-in GitHub Copilot disk/image** and executes **two genuine GitHub Copilot Dynamic Workflows** concurrently within those isolated MicroVMs. Results are streamed to a React observability dashboard. Upon a single explicit **Fix Vulnerability** approval, **Sandbox C executes a third genuine GitHub Copilot Dynamic Workflow** that patches the code, validates it, creates a new **private** GitHub repository named `{original-repo}-fixed`, commits/pushes the corrected source with the Sandbox Group Copilot PAT, and returns the new repository URL plus diff/tests. The original repository remains unchanged. There is no separate Publish button or backend GitHub publisher. Clean up all demo-created sandboxes. Provide a clearly marked replay mode recorded from a genuine successful run.
 
 - **A / Security & Code Review Dynamic Workflow:** pinned clone, non-executing source inspection, optional actual SAST/secrets scans, Copilot review, conditional evidence verification, structured `review.json`.

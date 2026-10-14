@@ -1,5 +1,11 @@
 # Development progress
 
+## Retain application Sandboxes after runs — 2026-10-14
+
+- User requested no automatic end-of-run deletion. Implemented default stopped retention for A/B/C, persistent per-run policy, owned-only stop/state verification, retained IDs in run state and dashboard lifecycle/notice. Explicit Clean up still deletes; legacy runs keep their recorded deletion behavior. Stop failures never fall back to delete and block new admission.
+- Inspected installed official SDK 0.1.0b4: `SandboxClient.stop()` posts the supported stop operation; `get().state` confirms Stopped/Suspended/Idle. Run-specific process termination occurs before suspension; no credential/process environment is read. Restart reconciliation honors retained runs. Explicit disposable recovery probes continue testing deletion.
+- Initial 26 focused lifecycle/runtime tests and frontend build passed. Added additional process-selection/end-to-end orchestrator unit coverage; full checks and live deployment/verification pending. No new Sandbox has been created for this change yet.
+
 ## Public-repository capability plan — 2026-10-14
 
 - Prepared the [public-repository implementation plan](./public-repository-plan.md): repository-independent admission, general source review, credential-free build/test workers, language adapters, multi-file remediation and separate publishing coordinated by genuine A/B/C Dynamic Workflows.

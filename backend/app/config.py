@@ -25,6 +25,7 @@ class Settings:
     event_retention_limit: int = 10000
     publication_owner: str = ""
     publication_enabled: bool = False
+    retain_sandboxes: bool = True
     sandbox_telemetry_config: str = ""
     sandbox_egress_hosts: tuple[str, ...] = (
         "github.com",
@@ -46,7 +47,7 @@ class Settings:
                 continue
             if name in ("authorized_users", "allowed_repositories", "sandbox_egress_hosts"):
                 values[name] = tuple(v.strip() for v in value.split(",") if v.strip())
-            elif name in ("live_execution_enabled", "publication_enabled"):
+            elif name in ("live_execution_enabled", "publication_enabled", "retain_sandboxes"):
                 values[name] = value.lower() == "true"
             elif name in ("max_run_seconds", "event_retention_limit"):
                 values[name] = int(value)
