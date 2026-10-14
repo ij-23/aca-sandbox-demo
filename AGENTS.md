@@ -4,6 +4,10 @@
 
 ## 0. Outcome / non-negotiable scope
 
+### Editable publication repository — 2026-10-14
+
+The Fix confirmation defaults to `{original-repo}-fixed` but lets the user choose a different new private repository name. Bind the validated name to the persisted approval and use it throughout Workflow C creation, push and remote verification. The configured personal owner remains fixed; reject the source destination and existing repositories, never overwrite. Git branch remains `main`. This supersedes mandatory fixed-name wording elsewhere; `{repo}-fixed` now denotes the default only.
+
 ### Sandbox retention decision — 2026-10-14
 
 Application-created A/B/C Sandboxes must **not be automatically deleted when a run ends**. Default `RETAIN_SANDBOXES=true`: terminate owned workflow processes, stop/suspend the Sandbox, verify its state and retain its ID/files for inspection. This applies to normal, failed, timed-out and interrupted runs; restart reconciliation honors each run's persisted policy. Stop failures remain visible and block new execution; never silently fall back to deletion. The authorized user's **Clean up** action explicitly deletes only that run's owned Sandboxes, with exact-ID deletion verification. Retention consumes quota and may incur storage charges. The protected pre-existing Sandbox remains untouched.

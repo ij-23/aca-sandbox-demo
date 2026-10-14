@@ -106,12 +106,14 @@ def test_publication_cannot_claim_success_without_validation():
         )
 
 
-def test_stale_remediation_approval_cannot_launch_a_second_attempt():
+@pytest.mark.parametrize("destination_name", ["b-fixed", "My-custom_fix.2026"])
+def test_stale_remediation_approval_cannot_launch_a_second_attempt(destination_name):
     class Executor:
         calls = 0
 
         async def run(self, value, role, emit):
             assert value.get("finished_at") is None
+            assert value["approval"]["destination_name"] == destination_name
             self.calls += 1
             return dict(
                 commit_sha=value["commit_sha"],
@@ -145,9 +147,19 @@ def test_stale_remediation_approval_cannot_launch_a_second_attempt():
             executor,
         )
         approval = Remediate(
-            finding_id="f1", approved=True, commit_sha="a" * 40, destination_owner="a", destination_name="b-fixed"
+            finding_id="f1",
+            approved=True,
+            commit_sha="a" * 40,
+            destination_owner="a",
+            destination_name=destination_name,
         )
+        for changes in ({"destination_owner": "other"}, {"destination_name": "B"}):
+            with pytest.raises(HTTPException) as rejected:
+                await runtime.remediate(value, approval.model_copy(update=changes))
+            assert rejected.value.status_code == 409
+        assert executor.calls == 0
         await runtime.remediate(value, approval)
+        assert (await store.get_run(value["run_id"]))["approval"]["destination_name"] == destination_name
         with pytest.raises(HTTPException) as failure:
             await runtime.remediate(value, approval)  # Same stale pre-approval snapshot.
         assert failure.value.status_code == 409
@@ -157,6 +169,12 @@ def test_stale_remediation_approval_cannot_launch_a_second_attempt():
         assert executor.calls == 1
 
     asyncio.run(scenario())
+
+
+@pytest.mark.parametrize("name", ["", ".", "..", "...", "repo.git", "repo.GIT", "a/b", "a b", "x\n", "x" * 101])
+def test_invalid_publication_name_is_rejected(name):
+    with pytest.raises(ValueError):
+        Remediate(finding_id="f1", approved=True, commit_sha="a" * 40, destination_owner="a", destination_name=name)
 
 
 def test_wrong_publication_destination_is_rejected_before_persistence():

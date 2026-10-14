@@ -449,8 +449,14 @@ def publish(data):
         report["limitations"].append("Copilot extension did not receive approved provider credential access")
         return report
     owner, name = approval.get("destination_owner", ""), approval.get("destination_name", "")
-    if not re.fullmatch(r"[A-Za-z0-9-]{1,39}", owner) or name != data["repository_url"].rsplit("/", 1)[1] + "-fixed":
-        raise ValueError("Destination does not match explicit approval")
+    if (
+        not re.fullmatch(r"[A-Za-z0-9-]{1,39}", owner)
+        or not re.fullmatch(r"[A-Za-z0-9_.-]{1,100}", name)
+        or not name.strip(".")
+        or name.lower().endswith(".git")
+        or f"https://github.com/{owner}/{name}".lower() == data["repository_url"].lower()
+    ):
+        raise ValueError("Invalid approved destination or destination matches source repository")
     if (
         approval.get("commit_sha") != data["commit_sha"]
         or report["status"] != "passed"

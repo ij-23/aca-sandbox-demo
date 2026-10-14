@@ -4,7 +4,7 @@ from datetime import UTC, datetime
 from typing import Annotated, Any, Literal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_validator
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints, field_validator, model_validator
 
 SHA = Annotated[str, StringConstraints(pattern=r"^[0-9a-f]{40}$")]
 Role = Literal["security", "build", "remediation", "system"]
@@ -25,6 +25,13 @@ class Remediate(StrictModel):
     commit_sha: SHA
     destination_owner: str = Field(pattern=r"^[a-zA-Z0-9-]{1,39}$")
     destination_name: str = Field(pattern=r"^[a-zA-Z0-9_.-]{1,100}$")
+
+    @field_validator("destination_name")
+    @classmethod
+    def repository_name(cls, value):
+        if not value.strip(".") or value.lower().endswith(".git"):
+            raise ValueError("Repository name cannot be only dots or end with .git")
+        return value
 
 
 class Event(StrictModel):

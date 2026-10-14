@@ -208,7 +208,7 @@ class Orchestrator:
             value = await self.store.get_run(value["run_id"])
             if value["remediation_attempted"] or value["status"] != "completed":
                 raise HTTPException(409, "Remediation is not available for this run")
-            _, repo = repository_parts(value["repository_url"], self.settings.allowed_repositories)
+            source_owner, repo = repository_parts(value["repository_url"], self.settings.allowed_repositories)
             findings = value["reports"].get("security", {}).get("findings", [])
             finding = next(
                 (f for f in findings if f["id"] == approval.finding_id and f["verification_status"] == "verified"), None
@@ -217,7 +217,8 @@ class Orchestrator:
                 not finding
                 or approval.commit_sha != value["commit_sha"]
                 or approval.destination_owner != self.settings.publication_owner
-                or approval.destination_name != repo + "-fixed"
+                or (approval.destination_owner.lower(), approval.destination_name.lower())
+                == (source_owner.lower(), repo.lower())
             ):
                 raise HTTPException(409, "Approval does not match a verified finding and configured destination")
             await self._claim()

@@ -89,7 +89,8 @@ def publication_input():
     }
 
 
-def test_publication_collision_never_pushes(monkeypatch):
+@pytest.mark.parametrize("name", ["fixture-fixed", "custom-private-repo"])
+def test_publication_collision_never_pushes(monkeypatch, name):
     import io
     import json
 
@@ -111,11 +112,15 @@ def test_publication_collision_never_pushes(monkeypatch):
     monkeypatch.setattr(operations.urllib.request, "build_opener", lambda *_: opener)
     monkeypatch.setattr(operations, "event", lambda *args, **kwargs: None)
     monkeypatch.setattr(operations, "command", lambda *args, **kwargs: pytest.fail("collision must not invoke git"))
-    report = operations.publish(publication_input())
+    data = publication_input()
+    data["approval"]["destination_name"] = name
+    report = operations.publish(data)
     assert report["publication_status"] == "failed" and opener.calls == 2
 
 
-def test_publication_requires_verified_remote_sha(tmp_path, monkeypatch):
+@pytest.mark.parametrize("name", ["fixture-fixed", "My-custom_fix.2026"])
+@pytest.mark.parametrize("matching_sha", [True, False])
+def test_publication_requires_verified_remote_sha(tmp_path, monkeypatch, name, matching_sha):
     import io
     import json
     import urllib.error
@@ -129,9 +134,9 @@ def test_publication_requires_verified_remote_sha(tmp_path, monkeypatch):
 
     repo = {
         "id": 42,
-        "full_name": "example/fixture-fixed",
+        "full_name": f"example/{name}",
         "private": True,
-        "html_url": "https://github.com/example/fixture-fixed",
+        "html_url": f"https://github.com/example/{name}",
     }
 
     class Opener:
@@ -142,13 +147,16 @@ def test_publication_requires_verified_remote_sha(tmp_path, monkeypatch):
             if self.calls == 1:
                 return Response({"login": "example", "type": "User"})
             if self.calls == 2:
+                assert request.full_url == f"https://api.github.com/repos/example/{name}"
                 raise urllib.error.HTTPError(request.full_url, 404, "missing", {}, None)
             if self.calls == 3:
                 assert request.method == "POST" and json.loads(request.data)["private"] is True
+                assert json.loads(request.data)["name"] == name
                 return Response(repo, 201)
             if self.calls == 4:
                 return Response(repo)
-            return Response({"object": {"sha": "c" * 40}})  # Deliberate remote mismatch.
+            assert request.full_url == f"https://api.github.com/repos/example/{name}/git/ref/heads/main"
+            return Response({"object": {"sha": ("b" if matching_sha else "c") * 40}})
 
     monkeypatch.setenv("COPILOT_GITHUB_TOKEN", "TEST_DOUBLE_TOKEN")
     monkeypatch.setattr(operations, "ROOT", tmp_path)
@@ -156,9 +164,29 @@ def test_publication_requires_verified_remote_sha(tmp_path, monkeypatch):
     monkeypatch.setattr(operations, "source_manifest", lambda: {})
     monkeypatch.setattr(operations.urllib.request, "build_opener", lambda *_: Opener())
     monkeypatch.setattr(operations, "event", lambda *args, **kwargs: None)
-    monkeypatch.setattr(operations, "command", lambda *args, **kwargs: {"exit_code": 0})
+
+    def command(data, step, args, *rest):
+        if step == "push":
+            assert args[-2:] == [f"https://github.com/example/{name}.git", "HEAD:refs/heads/main"]
+        return {"exit_code": 0}
+
+    monkeypatch.setattr(operations, "command", command)
     monkeypatch.setattr(operations.subprocess, "check_output", lambda *args, **kwargs: ("b" * 40).encode())
-    report = operations.publish(publication_input())
-    assert report["publication_status"] == "partial" and report["status"] == "failed"
-    assert report.get("fixed_commit_sha") is None
+    data = publication_input()
+    data["approval"]["destination_name"] = name
+    report = operations.publish(data)
+    assert report["publication_status"] == ("published" if matching_sha else "partial")
+    assert report["status"] == ("passed" if matching_sha else "failed")
+    assert report.get("fixed_commit_sha") == ("b" * 40 if matching_sha else None)
+    assert report["fixed_repository_url"] == f"https://github.com/example/{name}"
     assert "TEST_DOUBLE_TOKEN" not in (tmp_path / "git-credential-demo.py").read_text()
+
+
+@pytest.mark.parametrize("name", ["Fixture", "..", "...", "repo.git", "a/b", "a b", "", "x" * 101])
+def test_invalid_destination_prevents_network(monkeypatch, name):
+    monkeypatch.setenv("COPILOT_GITHUB_TOKEN", "TEST_DOUBLE_TOKEN")
+    monkeypatch.setattr(operations.urllib.request, "build_opener", lambda *_: pytest.fail("no network"))
+    data = publication_input()
+    data["approval"]["destination_name"] = name
+    with pytest.raises(ValueError, match="destination"):
+        operations.publish(data)
