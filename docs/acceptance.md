@@ -1,5 +1,9 @@
 # Live acceptance evidence
 
+## Retention behavior update — 2026-10-14
+
+New application runs stop/retain A/B/C instead of automatically deleting them. Release `adf807d` deployed as revision `0000008`; real A/B run `437447c3-9288-4aab-a2fd-0c8dd9e59cd1` verified stopped exact IDs, preserved result files after resume, zero deletion events and scoped restart preservation. Explicit Clean up retains the owned-only deletion path. This change has 79 passing Python tests and a passing frontend test/build; a new C publishing run and browser presentation verification were not repeated. Historical deletion/replay evidence below describes earlier behavior and is preserved accurately. See [progress](./progress.md#retention-deployment-and-live-result).
+
 Updated 2026-10-14. **Not all acceptance criteria are complete.** Unit tests are not cloud evidence.
 
 | Requirement | Actual evidence | State |

@@ -1,5 +1,11 @@
 # Compatibility ledger
 
+## Retained application Sandboxes — 2026-10-14
+
+SDK 0.1.0b4 supports `SandboxClient.stop()` (asynchronous service operation) and `get().state` confirmation; verified stopped A/B instances remain addressable by exact ID. Application retention uses the existing built-in disk/provider binding and terminates owned workflow processes before stopping. It never substitutes deletion on stop failure.
+
+`read_file()` against a stopped Sandbox returned HTTP 409 in the live inspection probe. Resume explicitly using `begin_resume(polling_timeout=60, polling_interval=2).result(timeout=70)` before reading workflow artifacts, then stop and verify again. Do not assume file reads automatically resume a stopped VM. The SDK's exec path can resume a suspended instance, so the retention adapter re-reads state and stops after its termination command. This changes end-of-run policy, not the previously verified Dynamic Workflow APIs or historical replay.
+
 Current verification and remaining work are summarized in [acceptance](./acceptance.md).
 The sections below are dated evidence, including historical blockers later resolved.
 The retired smoke-only requirements file mentioned in old commands was consolidated into

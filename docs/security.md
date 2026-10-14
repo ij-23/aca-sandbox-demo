@@ -4,6 +4,8 @@
 
 This is a **trusted-fixture demonstration**, not a service for arbitrary hostile repositories. A scan is not proof of safety.
 
+**Current retention policy (2026-10-14):** application A/B/C Sandboxes are stopped and retained after runs, including unsuccessful/interrupted runs. Owned workflow processes are terminated before suspension so inspection does not intentionally resume unfinished publication. Stop failures remain visible and block new execution; deletion is not a fallback. Explicit authenticated, owner-scoped **Clean up** deletes the run's Sandboxes. Retained disks and their injected credentials remain sensitive; use the dedicated demo account and manually clean up after inspection. Completed retained runs survive app reconciliation. Dedicated disposable smoke/recovery tests and legacy run records retain their explicit deletion policy.
+
 ## Identity and authentication
 
 The browser uses MSAL authorization-code flow with PKCE. The API independently verifies Entra RS256 signatures against the configured tenant's JWKS, issuer, API audience, expiry/not-before, tenant, `access_as_user` delegated scope and explicit user object-ID allowlist. It ignores `X-MS-CLIENT-PRINCIPAL` headers. Run reads, event streams, cleanup and remediation enforce ownership. Public endpoints expose only health and non-secret application configuration. An authenticated browser's token is never sent to a sandbox.
