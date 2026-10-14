@@ -226,3 +226,11 @@ terraform -chdir=infrastructure/terraform output -json sandbox_telemetry_config 
 ```
 
 All smoke commands require `--telemetry-config .local/sandbox-telemetry.json`. The application receives the same output through Terraform. Query `AcademoSandboxLogs_CL` by exact run_id/sandbox_id; API creation success alone is not an ingestion check.
+
+## Monthly baseline and operational limits
+
+Budget approximately **USD20/month idle** or **USD47/month with the host continuously active**, before free allowances, discounts, tax and Sandbox/Copilot use. This is a30-day estimate for one0.5-vCPU/1-GiB Consumption replica, ACR Basic,1GB of artifacts and1GB of paid Analytics ingestion. Azure Retail Prices queried2026-10-14 in Sweden Central give vCPU idle0.000003/s, active0.000024/s, memory0.000003/GiB-s: host idle11.664 or active38.88/month. Previously verified foundation light-use estimate is8.06/month (ACR5, artifacts/operations0.07, logs2.99). Actual host utilization can change idle eligibility.
+
+DCE/DCR/managed identity have no dedicated VM compute in this design; log ingestion/storage is usage-based. Do not infer Sandbox prices from the unrelated legacy Dynamic Sessions meter. Sandboxes, image builds, network transfer and Copilot subscriptions/AI credits are additional and must be checked against current account billing. A1GB/day LAW cap is not a hard spending ceiling or a reason to ingest that much data. No cost-alert resource has been added.
+
+Measured genuine A/B runs finished in26–27 seconds; these are observations, not latency guarantees. One active run, bounded Sandbox CPU/memory, process deadlines, explicit outbound allowlists and exact-ID cleanup constrain use. Container restarts can interrupt work; Blob preserves artifacts, not live execution. Never call the demo a production security boundary for the shared GitHub PAT.

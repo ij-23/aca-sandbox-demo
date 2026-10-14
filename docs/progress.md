@@ -61,7 +61,7 @@ Implemented the [Terraform foundation](../infrastructure/terraform/), [smoke har
 - [x] Prepare genuine workflow with deterministic preparation, `ctx.agent`, actual-result conditional verification, structured per-step outputs and boundary events; update bounded harness for provider binding, file delivery/polling and finally cleanup. Initial fourteen unit tests passed; genuine live execution subsequently passed in M0-CLI97.
 - [ ] Verify official GitHub personal-owner repository creation API/permission requirements, `X-Accepted-GitHub-Permissions`, account restrictions and actual git push requirements; do not assume creation grants push.
 - [x] Verify Sandbox Group Copilot credential configuration and runtime injection (2026-10-13): API Ready maps to portal Configured; explicit connection binding injects `COPILOT_GITHUB_TOKEN`. Only set/unset booleans reported, no credential values collected.
-- [ ] Verify updated demo publication PAT capability: disposable personal owner/Copilot seat, Copilot Requests, Repository creation: Write, Contents: Read and write, current/future repository access and short expiration. Configuration confirmation alone does not prove these permissions; publication testing is outside current approval.
+- [ ] Verify updated demo publication PAT capability: disposable personal owner/Copilot seat, Copilot Requests, Repository creation: Write, Contents: Read and write, current/future repository access and short expiration. Configuration confirmation alone does not prove these permissions; publication testing is authorized; current git push fails403.
 - [x] Obtain explicit approval for one disposable SDK sandbox in the deployed group, trusted prompt and genuine workflow, strict timeouts and deletion; no repository creation, public ingress, Terraform or app changes (2026-10-13).
 - [x] Reverify approved group ARM state, copilot Ready status and authenticated sandbox inventory; leave the pre-existing stopped sandbox untouched.
 - [x] Execute exactly one SDK smoke attempt with trusted prompt, no ports and no third-party repository; finally delete and verify exact-ID 404. Automatic Copilot authentication failed; workflow execution was not reached.
@@ -75,7 +75,7 @@ Implemented the [Terraform foundation](../infrastructure/terraform/), [smoke har
 - [x] Execute real smoke; credential auth without login, genuine registration/AI/conditional branch, result and six boundary events, live file polling and exact-ID cleanup verified (2026-10-14).
 - [x] Implement/exercise a genuine C Dynamic Workflow PoC inside an approved sandbox; prove failing build/tests or targeted recheck branches to a report with repository creation/push skipped and no remote write.
 - [x] Verify supported same-PAT extension access: official SDK permission handler grants only the trusted extension’s COPILOT_GITHUB_TOKEN request; GitHub /user returns ij-23. No host credential export. Git push permission remains a separate failed gate.
-- [ ] Obtain separate approval for exact disposable private test-repository owner/name, harmless content, create/push action and sandbox scope; then verify private repository creation, harmless push and remote owner/URL/SHA using that same injected credential.
+- [ ] Complete same-PAT harmless push and verify remote SHA. Personal owner and exact private test-repository creation passed; current push403 is an external permission blocker.
 - [ ] Record real C branch/publication evidence and owned-sandbox cleanup; retain partial test-repository outcomes transparently. Remove a test repository only after further explicit approval.
 - [ ] Mark viability gate passed only after all runtime evidence succeeds.
 
@@ -83,34 +83,38 @@ Implemented the [Terraform foundation](../infrastructure/terraform/), [smoke har
 
 - [x] Select local state for this bootstrap and lock AzureRM 4.81.0 / AzAPI 2.13.0 for Darwin ARM64 and Linux AMD64. CI backend remains a later explicit decision.
 - [x] Author bootstrap modules, typed inputs, example configuration and required outputs; application URL is empty until the later real-image phase.
-- [x] Implement and deploy scoped identities/RBAC, private blob containers/retention and telemetry; resource/grant read-back verified, UAMI runtime integration remains untested.
-- [ ] Resolve group limits/egress and Entra auth through verified APIs; any Terraform/infrastructure change needs separate approval.
-- [x] Run formatting, inspect installed provider schemas and validate; five offline Terraform tests pass.
+- [x] Implement and deploy scoped identities/RBAC, private blob containers/retention and telemetry; resource/grant read-back verified, UAMI runtime Blob/Sandbox access passes.
+- [x] Deploy secretless Entra auth and test per-create default-Deny/Full egress. Document unsupported persistent group-wide controls and use app admission/deadlines; no hard service-lifetime guarantee.
+- [x] Run formatting, inspect installed provider schemas and validate; six offline Terraform tests pass.
 - [x] Produce real saved foundation plan with discovered identity, Sweden Central, academo prefix and signed-in User operator: 23 additions, no changes/deletions.
 - [x] Present plan; apply exact saved plan after explicit approval; verify all resources and record policy-imposed Storage deviation.
-- [x] Verify user-resolved Storage networking read-only (2026-10-14). Endpoint reachable; no network change made. App UAMI Blob authorization remains an integration gate.
+- [x] Verify user-resolved Storage networking read-only (2026-10-14). Endpoint reachable; no network change made. App UAMI Blob authorization passes.
 
 ### Milestone 2 — application image and CI/CD
 
-- [x] Create React/FastAPI host and multi-stage Dockerfile; local AMD64 image build and isolated HTTP/static/non-root checks passed. No Azure deployment claimed.
-- [x] Implement server-side authorization, Blob persistence adapter and health/readiness endpoints; local security tests pass. Entra sign-in and Blob managed-identity access remain Azure verification gates.
+- [x] Create React/FastAPI host and multi-stage Dockerfile; local AMD64 image build and isolated HTTP/static/non-root checks passed. Azure application image deployed and readiness verified.
+- [x] Implement server-side authorization, Blob persistence adapter and health/readiness endpoints; local security tests pass. Entra sign-in and Blob managed-identity access pass.
 - [x] Implement platform-only CI lint/tests/schema/frontend/image checks with no Azure credentials or fixture execution.
 - [ ] Implement approved OIDC build/push/Terraform deployment with one image owner and durable state.
-- [ ] Validate image and approved Azure HTTPS deployment, login and managed identity access.
+- [x] Validate Azure HTTPS image deployment, browser Entra login, anonymous401, UAMI Blob/Sandbox access and ACR application-only contents.
 
 ### Milestone 3 — real A/B execution
 
 - [x] Implement vetted repository URL validation and bounded public immutable-SHA resolution; input rejection covered locally.
 - [x] Implement strict event/report schemas and generated JSON contracts for all three workflows, redaction and run-owner state; C report validates publication evidence and approved destination.
-- [x] Connect durable per-attempt ownership intent to the real SDK executor; local cleanup/cancellation tests passed; Azure integration pending.
+- [x] Connect durable per-attempt ownership intent to the real SDK executor; local cleanup/cancellation tests and real A/B owned cleanup pass.
 - [x] Implement deterministic concurrent A/B orchestration, single-run admission, timeouts and per-run cleanup-failure recovery; verified with explicit unit-test doubles.
 - [ ] Verify the implemented real SDK adapter through approved Azure A/B/C runs.
-- [ ] Verify implemented security and build Dynamic Workflows and observe branches in Azure.
+- [x] Verify genuine security/build Dynamic Workflows concurrently at one immutable SHA; real AI, source verification,2 passed/2 failed pytest and conditional runtime skip observed.
 - [ ] Verify real A/B results, cancellation, partial failure, restart reconciliation and cleanup.
 
 ### Milestone 4 — observability dashboard
 
-- [ ] Implement lifecycle cards and genuine Dynamic Workflow timelines for A, B and C: concurrent A/B and full C timeline after Fix approval; real logs, timestamps, branch/skip/retry evidence and cleanup states.
+- [x] Provision official telemetryConfig/DCR/DCE/UAMI and verify LAW ingestion for actual A/B/C run and Sandbox IDs.
+- [x] Verify all48 real A/B events persist contiguously in private Blob after conditional append-blob creation fix.
+- [x] Verify real command timeout124, outbound allow200/deny403 and exact-ID cleanup.
+
+- [x] Implement lifecycle cards and genuine A/B/C timelines. Real A/B steps/logs/results/cleanup observed in React; C UI execution remains blocked by publication credentials.
 - [x] Implement single Fix Vulnerability confirmation disclosing finding, source SHA and private destination; no separate Publish button. End-to-end live behavior remains unverified.
 - [ ] Show C stages `checkout`, `agent.fix`, `validate`, `publication.gate`, `create_repo`, `push`, `verify_remote`, `complete`; validation results/diff, failure or partial-publication status, and clickable verified repository URL/commit SHA.
 - [ ] Verify authenticated SSE resume/heartbeat and durable history beyond ring buffer for all three workflows, including C branch/publication events; disclose polling if true streaming is unavailable.
@@ -120,8 +124,8 @@ Implemented the [Terraform foundation](../infrastructure/terraform/), [smoke har
 ### Milestone 5 — approved remediation and publication Dynamic Workflow
 
 - [x] Bind one Fix Vulnerability approval to user/run/finding/source SHA/destination/attempt; local tests reject stale and repeated approvals and wrong report destinations. No live C executor is enabled; cloud acceptance remains open.
-- [x] Implement C as a third genuine registered extension with deterministic validation/publication code. Actual C execution/publication remains unverified and gated.
-- [ ] Execute pinned checkout, bounded fix, build/tests and targeted security recheck; capture reviewable diff including new files. Failed, missing or timed-out required validation reports failure and skips all remote writes.
+- [x] Implement C as a third genuine registered extension with deterministic validation/publication code. Genuine C failed-validation branch passes; successful publication remains blocked.
+- [x] Exercise genuine C fix/build/tests/diff and deterministic failed-validation gate with an uploaded immutable trusted fixture; all publication stages skipped. Repository-cloned successful publication remains a separate gate.
 - [ ] On success, verify personal destination owner and name availability; collisions fail without overwrite. Create private `{original-name}-fixed` inside C through the verified API with the same group PAT.
 - [ ] Commit/push checked sanitized fixed source with fresh history, including new files and license/attribution; exclude old `.git`, credentials, `.env`, runtime artifacts and secret-bearing fixtures; original repo/remote unchanged.
 - [ ] Verify remote owner/name/private visibility and pushed SHA before returning successful `remediation.json` with `fixed_repository_url`, commit SHA, diff and validation evidence.
@@ -372,3 +376,13 @@ One real sandbox lifecycle/failed-prompt test and verified cleanup now exist. No
 
 - Trusted controls probe Sandbox0cfa210f-02ec-4770-8697-5a7aef37d8e2: timeout1s terminated sleep10 with exit124; allowed github.com returned200; default-denied example.com returned403. Creation0.996s, cleanup8.907s, exact404 verified. Protected Sandbox remained Stopped; no fixture execution, PAT exposure or ingress. This validates shell timeout and outbound rule behavior, not a full host-crash recovery drill.
 - Public project push f4eb686 succeeded. First hosted CI failed only because the last smoke CLI help-text edit needed Ruff formatting; fixed and retrying. No Azure deployment was triggered by that platform-only CI.
+
+## Hosted CI and final verification checkpoint — 2026-10-14
+
+- GitHub Actions [Platform checks run38543168107](https://github.com/ij-23/aca-sandbox-demo/actions/runs/38543168107) passed on84fe8b8: locked dependency install, lint/format,68 Python tests, schema export, workflow syntax, frontend tests/build and isolated application image check. No fixture code executed on the runner.
+- Fresh Terraform plan returned **No changes** after drift corrections. ACR contains only academo-app. Original source fixture SHA remains c1c3d2bcd0f33eddfd77d29249c3a04c0130da1e. Anonymous GET/POST runs, remediation and cleanup all returned401.
+- Remaining external dependencies: user confirmation of corrected group PAT repository write/future-repository access; explicit remote-state choice required by terraform-builder for an actual OIDC deployment pipeline. Edge window became unavailable (cgWindowNotFound), so additional browser reconnect/cancellation checks cannot currently proceed. Earlier real Azure Entra login and A/B UI observations remain valid; do not claim unperformed C/replay/rehearsal checks.
+
+- Source-alignment Terraform apply completed: image-only update,0 added/1 changed/0 destroyed. Deployed app digest742939758418493cf0116983b46870855dcd2f56d174de2bc4c018ec21c49d5f includes the numbered-source prompt change; that final prompt refinement still awaits another live review after browser access resumes.
+- Final official SDK inventory contains only protected5bf17eda-250b-4c90-9cd6-bd44a5610851, Stopped. All latest A/B/C/control/publication-probe IDs independently returned404. Original consumed foundation plan SHA256 remains386fceff8f67a42d8e51f20d6bf521b59fc4244a5e8e3186d8cbe76178178622.
+- Project remains **INCOMPLETE**: no successful fixed repository, no complete A/B/C replay, no OIDC Azure deployment run, no full15-minute rehearsal or clean-subscription install proof. Do not confuse genuine C failed-validation success with the successful publishing branch. Resume from the external dependencies; do not repeat foundation apply or create another test repository.
