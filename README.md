@@ -6,7 +6,7 @@
 
 [MIT license](./LICENSE) · [Contributing](./CONTRIBUTING.md)
 
-> **Live validation in progress.** The Azure foundation, telemetry DCR/DCE, Entra registrations and React/FastAPI Container App are deployed. Browser sign-in, managed-identity Blob access, genuine CLI 1.0.97 workflow and C’s failed-validation branch pass. Concurrent genuine A/B, all-role LAW ingestion and full48-event private Blob persistence pass. Successful C publication and full replay/rehearsal remain under test. The same group PAT can create a private repository but git push currently returns 403; publication remains disabled. See [progress](./docs/progress.md) and [compatibility](./docs/compatibility.md).
+> **Live validation in progress.** The Azure foundation, telemetry DCR/DCE, Entra registrations and React/FastAPI Container App are deployed. Browser sign-in, managed-identity Blob access, genuine CLI 1.0.97 workflow and C’s failed-validation branch pass. Concurrent genuine A/B, all-role LAW ingestion and full48-event private Blob persistence pass. Successful C publication and full replay/rehearsal remain under test. The corrected group PAT now passes creation and git push; live C published a verified private fixed repository. The full 95-event A/B/C recording is captured. See [progress](./docs/progress.md) and [compatibility](./docs/compatibility.md).
 
 The project source is [ij-23/aca-sandbox-demo](https://github.com/ij-23/aca-sandbox-demo). Follow the [manual application deployment](./docs/deployment.md#manual-application-deployment-used-in-this-project) with the [application input example](./infrastructure/terraform/application.auto.tfvars.example).
 
@@ -28,7 +28,7 @@ LIVE_EXECUTION_ENABLED=false .venv/bin/python -m uvicorn app.main:app \
 
 Open `http://127.0.0.1:8000` for development inspection. This is not the required final Azure deployment. Sign-in requires customer Entra registrations; operational APIs reject anonymous requests. Without Azure storage configuration, health returns 200 and readiness returns 503. There is no production memory-store fallback or fabricated replay.
 
-Build the **application** image with `docker build --platform linux/amd64 -t aca-sandbox-demo:local .`. [Deployment guidance](./docs/deployment.md#local-preparation-and-validation) includes the optional package proxy configuration used in this environment. Never pass credentials as build arguments. CI in [.github/workflows/ci.yml](./.github/workflows/ci.yml) runs platform checks and an image build only; Azure OIDC deployment is not configured yet.
+Build the **application** image with `docker build --platform linux/amd64 -t aca-sandbox-demo:local .`. [Deployment guidance](./docs/deployment.md#local-preparation-and-validation) includes the optional package proxy configuration used in this environment. Never pass credentials as build arguments. CI in [.github/workflows/ci.yml](./.github/workflows/ci.yml) runs platform checks and an image build only; OIDC image publication is configured; deployment uses the existing local Terraform state as described below.
 
 The approved M0-CLI97 test passed on 2026-10-14, including real Copilot AI, branching, live file polling and exact-ID cleanup. M0-C-FAIL also passed: actual AI patching and failing pytest caused the deterministic gate to skip all GitHub writes. The already-applied foundation plan must not be reapplied.
 
@@ -203,3 +203,11 @@ Copilot and cloud timings are nondeterministic. Record one actual successful run
 - [GitHub Copilot Dynamic Workflows announcement](https://github.blog/changelog/2026-10-01-dynamic-workflows-in-copilot-cli-and-the-copilot-app/)
 
 **Main message:** Give every AI agent its own isolated computer — with three observable, real Copilot Dynamic Workflows, user-controlled remediation and a fully Azure-hosted, customer-deployable platform.
+
+## Local Terraform state and OIDC image releases
+
+This deployment explicitly retains **local Terraform state**. Do not migrate it to Blob, reset it, or run Terraform against an empty hosted runner. Keep private backups of state/inputs; never commit or upload state or saved plans as Actions artifacts. Terraform remains the sole owner of application revisions.
+
+Set optional `github_build_repository = "owner/project-repository"` in private Terraform inputs, inspect/apply its plan, then configure these non-secret repository variables: `AZURE_CLIENT_ID` from `github_build_client_id`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`, `ACR_NAME`, `ACR_LOGIN_SERVER`. The build identity has **AcrPush on this registry only**, and exact main-branch GitHub federation. It cannot deploy infrastructure or read report blobs.
+
+Run the [release workflow](./.github/workflows/deploy.yml) from main. Download its `application-release` artifact containing only image digest and source SHA. On the existing state-holding machine, set `application.image` in private deployment inputs to that digest, preserve all other inputs, plan/inspect/apply using [manual deployment](./docs/deployment.md#manual-application-deployment-used-in-this-project). Drain active app runs first. The workflow does not itself update the Container App. Full automatic Terraform deployment is not claimed without a persistent trusted runner.

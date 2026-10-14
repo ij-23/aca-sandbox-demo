@@ -454,3 +454,11 @@ Live A/B genuine workflows passed execution with expected fixture results (A ver
 ### Live egress and command timeout
 
 Probe0cfa210f-02ec-4770-8697-5a7aef37d8e2 used built-in copilot, existing binding and official EgressPolicy(default_action="Deny",traffic_inspection="Full") with github.com allowed. GitHub HTTPS returned200, example.com returned403. `timeout --kill-after=1s 1s sleep 10` returned124. Exact-ID cleanup completed in8.907s. Real A/B also exercised the production allowlist for GitHub/Copilot/PyPI. No group-global egress or hard-lifetime enforcement is claimed.
+
+## Resolved same-PAT publishing gate — 2026-10-14
+
+After the user corrected permissions, a fresh bound Copilot Sandbox pushed the harmless file to the exact existing private test repository and verified remote SHA `1f9fe8d42bb5f364d352d5d2b784492b9a6b53e1`. No second test repository, credential injection or different credential was used. Finally cleanup verified exact404.
+
+The actual deployed C workflow then passed build,4 pytest,localhost health,2 targeted tests and source integrity; POST /user/repos created private `ij-23/academo-fastapi-fixture-fixed`, git push succeeded and GET refs/heads/main matched `d84155b39cd758e6e22b8db51036d72eda5c9f3d`. API/CLI publication uses the group PAT granted by the verified official SDK extension permission handler. Entra browser Fix approval was the only product approval.
+
+All95 events, three reports and exact diff were read back using deployed UAMI. A/B/C deleted/exact404, original source unchanged. The [captured replay](../fixtures/README.md) is actual output, not simulated. Earlier403 and incomplete-history records remain historical evidence.

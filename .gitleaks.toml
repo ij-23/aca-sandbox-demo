@@ -1,0 +1,7 @@
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Public immutable trusted-fixture commit; git fetch arguments resemble a generic key"
+regexTarget = "secret"
+regexes = ['''^c1c3d2bcd0f33eddfd77d29249c3a04c0130da1e$''']

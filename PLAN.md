@@ -115,7 +115,7 @@ Use one Terraform root with an explicit application phase input, subject to vali
 
 App authentication must fail closed even while deployment dependencies converge. Avoid a momentarily anonymous operational endpoint during app/auth provisioning.
 
-**Local state is selected for the deployed foundation; CI state remains open.** The skill permits a remote backend only when explicitly requested. Preserve protected local state. Repeatable GitHub Actions Terraform deployment needs durable, locked state: recommend a separately approved Azure Blob state backend with OIDC and controlled bootstrap/migration. Do not silently add it, use ephemeral runner state, or publish state as an artifact. Finish this decision before claiming the CI/CD path is reproducible.
+**Existing LOCAL Terraform state is explicitly required (2026-10-14).** Preserve it and its lineage; no remote backend, migration, reset or recreation. Hosted Actions must never run Terraform against empty ephemeral state or upload state/plans as artifacts. Use OIDC for image publication and the existing local state holder for inspected Terraform deployment. A fully automated Terraform Actions job would require a customer-provided persistent trusted runner with access to this exact state; do not install one silently.
 
 Required outputs: `application_url`, `sandbox_group_name`, `resource_group_name`, `region`, `acr_login_server`, `managed_identity_client_id`, `storage_account_name`, and non-secret manual setup links/instructions. Explain phase-dependent outputs, retention, budget expectations, and the manual credential/consent checkpoints.
 

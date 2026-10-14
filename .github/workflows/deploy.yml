@@ -1,49 +1,40 @@
-name: Project Azure application deployment
+name: Build release for local-state deployment
 on:
   workflow_dispatch:
 permissions:
   contents: read
-  actions: read
   id-token: write
 concurrency:
-  group: azure-application-deployment
+  group: azure-application-release
   cancel-in-progress: false
-# Project authorization permits autonomous deploy; environment reviewers are optional customer policy.
-# No PAT, Azure client secret or Terraform state artifact is accepted here.
+# Local Terraform state remains exclusively on the customer's deployment machine.
+# This job publishes an app image and a non-secret digest manifest, never tfstate/plans.
 jobs:
-  build-plan:
-    environment: azure-plan
+  build-release:
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    outputs:
-      plan_sha: ${{ steps.plan.outputs.sha }}
-      image: ${{ steps.image.outputs.image }}
     env:
-      ARM_USE_OIDC: 'true'
-      ARM_USE_AZUREAD: 'true'
-      ARM_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
-      ARM_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
-      ARM_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
-      TF_IN_AUTOMATION: 'true'
       ACR_SERVER: ${{ vars.ACR_LOGIN_SERVER }}
       ACR_NAME: ${{ vars.ACR_NAME }}
-      TF_INPUTS: ${{ vars.TERRAFORM_INPUTS_JSON }}
-      TF_BACKEND: ${{ vars.TERRAFORM_BACKEND_JSON }}
     steps:
       - uses: actions/checkout@v4
-      - name: Require durable state configuration
+      - name: Validate public build configuration
+        env:
+          CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+          TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+          SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
         run: |
-          test -f infrastructure/terraform/backend.tf || { echo 'Remote state is not configured. Use the documented manual path until state migration.'; exit 1; }
-          test -n "$ARM_CLIENT_ID" && test -n "$ACR_SERVER" && test -n "$TF_INPUTS" && test -n "$TF_BACKEND"
-          mkdir -p .local
-          printf '%s' "$TF_INPUTS" > .local/deployment.tfvars.json
-          printf '%s' "$TF_BACKEND" > .local/backend.json
+          test -n "$CLIENT_ID" && test -n "$TENANT_ID" && test -n "$SUBSCRIPTION_ID"
+          test -n "$ACR_SERVER" && test -n "$ACR_NAME"
       - uses: azure/login@v2
         with:
           client-id: ${{ vars.AZURE_CLIENT_ID }}
           tenant-id: ${{ vars.AZURE_TENANT_ID }}
           subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
       - uses: docker/setup-buildx-action@v3
+      # AcrPush is the only granted role. Registry name lookup may warn without Reader;
+      # azure/login + registry token exchange still authorizes the known registry.
       - run: az acr login --name "$ACR_NAME"
       - uses: docker/build-push-action@v6
         id: build
@@ -52,80 +43,21 @@ jobs:
           platforms: linux/amd64
           push: true
           tags: ${{ vars.ACR_LOGIN_SERVER }}/academo-app:${{ github.sha }}
-      - name: Bind deployment inputs to the pushed digest
-        id: image
+      - name: Write immutable release manifest
         env:
           IMAGE_DIGEST: ${{ steps.build.outputs.digest }}
+          SOURCE_SHA: ${{ github.sha }}
         run: |
           python - <<'PY'
           import json, os, pathlib, re
           image = os.environ['ACR_SERVER'] + '/academo-app@' + os.environ['IMAGE_DIGEST']
           assert re.fullmatch(r'[a-z0-9.]+/academo-app@sha256:[a-f0-9]{64}', image)
-          path = pathlib.Path('.local/deployment.tfvars.json')
-          data = json.loads(path.read_text())
-          assert isinstance(data.get('application'), dict), 'Real auth/application inputs required'
-          data['application']['image'] = image
-          path.write_text(json.dumps(data))
-          with open(os.environ['GITHUB_OUTPUT'], 'a') as output: output.write('image=' + image + '\n')
+          pathlib.Path('release.json').write_text(json.dumps({'image':image,'source_sha':os.environ['SOURCE_SHA']})+'\n')
+          with open(os.environ['GITHUB_STEP_SUMMARY'],'a') as output:
+              output.write('Image published: `' + image + '`\n\nDeploy using the existing local Terraform state and the documented inspected-plan procedure. This job does not update the Container App.\n')
           PY
-      - uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: '1.15.3'
-          terraform_wrapper: false
-      - run: terraform -chdir=infrastructure/terraform init -input=false -lockfile=readonly -backend-config=../../.local/backend.json
-      - name: Reject local or untracked state
-        run: |
-          python - <<'PY'
-          import json
-          state = json.load(open('infrastructure/terraform/.terraform/terraform.tfstate'))
-          assert state['backend']['type'] == 'azurerm', 'Durable Azure state is required for CI deployment'
-          PY
-      - run: terraform -chdir=infrastructure/terraform validate
-      - name: Save exact proposed plan
-        id: plan
-        run: |
-          terraform -chdir=infrastructure/terraform plan -input=false -no-color -var-file=../../.local/deployment.tfvars.json -out=application.tfplan
-          sha256sum infrastructure/terraform/application.tfplan > .local/application-plan.sha256
-          echo "sha=$(cut -d ' ' -f1 .local/application-plan.sha256)" >> "$GITHUB_OUTPUT"
-          terraform -chdir=infrastructure/terraform show -no-color application.tfplan > .local/application-plan.txt
       - uses: actions/upload-artifact@v4
         with:
-          name: reviewed-application-plan
-          retention-days: 1
-          include-hidden-files: true
-          path: |
-            infrastructure/terraform/application.tfplan
-            .local/application-plan.sha256
-            .local/application-plan.txt
-  apply-reviewed-plan:
-    needs: build-plan
-    environment: azure-apply
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    env:
-      ARM_USE_OIDC: 'true'
-      ARM_USE_AZUREAD: 'true'
-      ARM_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
-      ARM_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
-      ARM_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
-      TF_IN_AUTOMATION: 'true'
-      TF_BACKEND: ${{ vars.TERRAFORM_BACKEND_JSON }}
-      SAVED_PLAN_SHA: ${{ needs.build-plan.outputs.plan_sha }}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
-        with:
-          name: reviewed-application-plan
-      - uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: '1.15.3'
-          terraform_wrapper: false
-      - name: Initialize same durable backend
-        run: |
-          mkdir -p .local
-          printf '%s' "$TF_BACKEND" > .local/backend.json
-          terraform -chdir=infrastructure/terraform init -input=false -lockfile=readonly -backend-config=../../.local/backend.json
-      - name: Apply only the inspected saved plan
-        run: |
-          test "$(sha256sum infrastructure/terraform/application.tfplan | cut -d ' ' -f1)" = "$SAVED_PLAN_SHA"
-          terraform -chdir=infrastructure/terraform apply -input=false application.tfplan
+          name: application-release
+          path: release.json
+          retention-days: 7

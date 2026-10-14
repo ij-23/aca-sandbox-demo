@@ -20,6 +20,10 @@ Protect unrelated resources, the pre-existing Sandbox and original source reposi
 
 The dashboard's single Fix Vulnerability confirmation remains a required product behavior. The agent is authorized to exercise that confirmation during the demo's E2E tests; no separate chat approval or Publish button is required. This section supersedes older approval checkpoints recorded in historical progress and compatibility evidence.
 
+### Terraform state decision — 2026-10-14
+
+Keep the existing LOCAL Terraform state and its lineage. Do not configure remote state, migrate, reset, or recreate infrastructure. GitHub Actions may use OIDC to build/push the app image and publish a non-secret digest manifest. Apply that digest through inspected Terraform plans on the existing local state holder. A fully automated Actions Terraform deployment requires a separately configured trusted persistent runner with access to that same state; never run Terraform on an empty hosted-runner state or publish state/plan artifacts.
+
 ## 1. Mandatory Terraform skill: `terraform-builder`
 
 **All provisioning, modifying, importing or destroying Azure infrastructure with Terraform MUST be performed following the agent skill named exactly `terraform-builder`.** Before writing any `*.tf` files or applying infrastructure:

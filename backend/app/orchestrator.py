@@ -189,6 +189,7 @@ class Orchestrator:
                 value.update(
                     remediation_attempted=True,
                     status="remediating",
+                    finished_at=None,
                     approval=approval.model_dump(),
                     finding=finding,
                     cleanup_pending=True,

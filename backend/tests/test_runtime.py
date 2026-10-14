@@ -107,6 +107,7 @@ def test_stale_remediation_approval_cannot_launch_a_second_attempt():
         calls = 0
 
         async def run(self, value, role, emit):
+            assert value.get("finished_at") is None
             self.calls += 1
             return dict(
                 commit_sha=value["commit_sha"],
@@ -128,6 +129,7 @@ def test_stale_remediation_approval_cannot_launch_a_second_attempt():
             repository_url="https://github.com/a/b",
             commit_sha="a" * 40,
             status="completed",
+            finished_at="2026-10-14T10:00:00+00:00",
             remediation_attempted=False,
             reports={"security": {"findings": [{"id": "f1", "verification_status": "verified"}]}},
         )

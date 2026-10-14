@@ -10,7 +10,7 @@ The [README](../README.md) is the canonical customer guide. See the [compatibili
 
 The [Terraform root](../infrastructure/terraform/) creates a dedicated resource group, application ACR, host UAMI, Consumption-profile Container Apps Environment, workspace-based Application Insights, Log Analytics workspace, StorageV2 account, four private artifact containers, lifecycle retention, diagnostics, Sandbox Group, and scoped RBAC. With application and entra_public_origin inputs it also provisions the application and secretless SPA/API registrations. Sandbox telemetry adds DCE/DCR/custom table and an ingestion-only UAMI. Image build/push is a separate step; temporary Sandboxes remain runtime-managed. GitHub OIDC trust is not configured yet.
 
-Terraform modules are grouped by resource group, registry, identity, monitoring, storage, sandbox group, and access. AzureRM 4.81.0 and AzAPI 2.13.0 are locked. Local state is the current default; no remote backend is provisioned. Keep state and saved plans private, backed up and excluded from Git. Resolve a durable locked backend before implementing GitHub Actions deployment.
+Terraform modules are grouped by resource group, registry, identity, monitoring, storage, sandbox group, and access. AzureRM 4.81.0 and AzAPI 2.13.0 are locked. Local state is the current default; no remote backend is provisioned. Keep state and saved plans private, backed up and excluded from Git. Use OIDC image releases and local Terraform deployment; never migrate this instance to remote state.
 
 Storage public blob access and shared-key authentication are disabled. The approved configuration requested a public HTTPS endpoint with Entra authorization. The user resolved the earlier inherited-policy networking issue. Read-only verification on 2026-10-14 shows publicNetworkAccess Enabled and a reachable Blob HTTPS endpoint. Anonymous access is denied, and the operator lacks Blob data permissions. No networking fix was attempted. App UAMI grants were read back; deployed-host readiness and real event writes verified UAMI Blob access. Blob roles are assigned at each container. Log Analytics/Storage use ARM resources to avoid fetching shared keys into Terraform state. The environment sends logs through Azure Monitor diagnostics, avoiding a workspace-key connection. Application Insights disables local authentication; its exported connection string/instrumentation identifier does not grant ingestion access. The future host needs its UAMI and Monitoring Metrics Publisher role to send telemetry.
 
@@ -167,23 +167,11 @@ user IDs, vetted repository allowlist, existing provider connection ID, personal
 publication owner and exact HTTPS origin. Live execution/publication default false.
 Do not enable publication before real extension credential and create/push validation.
 
-The prepared [deployment workflow](../.github/workflows/deploy.yml) uses OIDC and
-uses customer-owned `azure-plan` and `azure-apply` GitHub environments. Required reviewers are optional customer policy. The first builds and saves the plan; the second applies the inspected artifact. It applies only that artifact after checking its SHA256,
-never replans during apply and never calls `az containerapp update`.
-The plan artifact contains infrastructure configuration/state-derived values;
-restrict repository/environment access and retain it for one day. Never add the
-Copilot credential to any Terraform input/state or pipeline variable.
+The [release workflow](../.github/workflows/deploy.yml) uses short-lived GitHub OIDC to build/push the application image. Its dedicated Terraform-managed identity has only AcrPush at the project registry and trusts the exact project main branch. It uploads only `release.json` (image digest/source SHA), never state or plans.
 
-This workflow intentionally refuses to run without an approved **azurerm remote
-backend** and migration. No backend file/state account is created by the workflow.
-The existing foundation uses protected local state. Customer backend/OIDC choices,
-actual repository/branch, federated identity and least-privileged build/deploy grants
-remain unconfigured. A workflow file is not a verified CI/CD deployment.
-Environment variables are `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`,
-`AZURE_SUBSCRIPTION_ID`, `ACR_LOGIN_SERVER`, `ACR_NAME`,
-`TERRAFORM_INPUTS_JSON` (non-secret root inputs) and `TERRAFORM_BACKEND_JSON`
-(non-secret backend account/container/key settings). All are GitHub environment
-**variables**, not credentials; no long-lived Azure client secret is used.
+**The user explicitly selected existing local Terraform state.** There is no backend migration or hosted-runner Terraform apply. Configure non-secret repository variables `AZURE_CLIENT_ID` (Terraform `github_build_client_id`), `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`, `ACR_LOGIN_SERVER`, `ACR_NAME`. Run the workflow from main; download its `application-release` artifact, inspect the source/digest, and use the manual local-state plan/apply procedure below. No Azure client secret or Copilot PAT is used by Actions.
+
+A completely automated Actions apply would need a trusted persistent runner accessing the same local state, with customer-managed protection and appropriate scoped permissions. None is installed or implied. The currently implemented release pipeline plus local Terraform deployment preserves one image owner and the existing state lineage.
 
 Drain all active runs and confirm owned-sandbox cleanup before a revision update.
 Single revision/min-max 1 does not prevent old/new revision overlap during rollout;
