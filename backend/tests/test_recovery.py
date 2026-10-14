@@ -76,10 +76,13 @@ def test_restart_continues_cleanup_and_retry_releases_only_resolved_failure():
             await runtime.reconcile()
         assert executor.attempted == identifiers
         assert runtime.cleanup_failed
+        detected_at = (await store.get_run(identifiers[0]))["finished_at"]
+        assert detected_at
         assert not (await store.get_run(identifiers[2]))["cleanup_pending"]
         executor.failing.remove(identifiers[0])
         result = await runtime.cancel(await store.get_run(identifiers[0]))
         assert result["status"] == "interrupted"
+        assert result["finished_at"] == detected_at
         assert not result["cleanup_pending"]
         assert runtime.cleanup_failed  # The other failure still owns the admission block.
         with pytest.raises(HTTPException):
@@ -113,6 +116,7 @@ def test_event_persistence_failure_does_not_skip_restart_cleanup():
         assert not runtime.cleanup_failed
         saved = (await store.runs())[0]
         assert saved["event_delivery_failed"]
+        assert saved["finished_at"]
         assert not saved["cleanup_pending"]  # Deletion evidence survives in state when the event log fails.
 
     asyncio.run(scenario())

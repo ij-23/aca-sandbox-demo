@@ -11,7 +11,7 @@ resource "azurerm_federated_identity_credential" "main" {
   user_assigned_identity_id = azurerm_user_assigned_identity.this.id
   audience                  = ["api://AzureADTokenExchange"]
   issuer                    = "https://token.actions.githubusercontent.com"
-  subject                   = "repo:${var.repository}:ref:refs/heads/main"
+  subject                   = var.subject
 }
 
 resource "azurerm_role_assignment" "push" {

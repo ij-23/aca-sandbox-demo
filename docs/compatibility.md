@@ -462,3 +462,9 @@ After the user corrected permissions, a fresh bound Copilot Sandbox pushed the h
 The actual deployed C workflow then passed build,4 pytest,localhost health,2 targeted tests and source integrity; POST /user/repos created private `ij-23/academo-fastapi-fixture-fixed`, git push succeeded and GET refs/heads/main matched `d84155b39cd758e6e22b8db51036d72eda5c9f3d`. API/CLI publication uses the group PAT granted by the verified official SDK extension permission handler. Entra browser Fix approval was the only product approval.
 
 All95 events, three reports and exact diff were read back using deployed UAMI. A/B/C deleted/exact404, original source unchanged. The [captured replay](../fixtures/README.md) is actual output, not simulated. Earlier403 and incomplete-history records remain historical evidence.
+
+## OIDC local-state release and runtime recovery — 2026-10-14
+
+GitHub immutable OIDC subjects are enabled for this repository. The exact subject is `repo:ij-23@51998322/aca-sandbox-demo@1418670118:ref:refs/heads/main`; the older name-only subject failed AADSTS700213. Scoped Terraform correction followed by release run38553776354 proved azure/login and ACR image push. Build identity has AcrPush only on the project ACR. The release artifact contains image/source digests only. Existing local Terraform state applied the image; revision0000006 is Healthy and the subsequent plan has no changes.
+
+Real deployed-UAMI orchestration cancellation and child-process interruption recovery passed with owned A/B Sandbox pairs. Production reconciliation read actual Blob records, marked interruption and deleted exact IDs. This is a runtime implementation drill, not an authenticated HTTP test or simulated result. Detection exposed a missing finish timestamp; the fix records when recovery detects interruption and preserves it across cleanup retries. See [acceptance evidence](./acceptance.md) for remaining gates.

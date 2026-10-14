@@ -6,7 +6,7 @@
 
 [MIT license](./LICENSE) · [Contributing](./CONTRIBUTING.md)
 
-> **Live validation in progress.** The Azure foundation, telemetry DCR/DCE, Entra registrations and React/FastAPI Container App are deployed. Browser sign-in, managed-identity Blob access, genuine CLI 1.0.97 workflow and C’s failed-validation branch pass. Concurrent genuine A/B, all-role LAW ingestion and full48-event private Blob persistence pass. Successful C publication and full replay/rehearsal remain under test. The corrected group PAT now passes creation and git push; live C published a verified private fixed repository. The full 95-event A/B/C recording is captured. See [progress](./docs/progress.md) and [compatibility](./docs/compatibility.md).
+> **Live A/B/C publishing verified.** The Azure host, Entra sign-in, concurrent genuine Copilot workflows, source-verified finding, successful C fix/validation/private publication, telemetry and95-event private persistence/replay are verified. The original fixture is unchanged and all disposable Sandboxes are deleted. OIDC image release/deployment passed; remaining operational/customer-install checks are tracked in [progress](./docs/progress.md). The project is not yet declared fully complete.
 
 The project source is [ij-23/aca-sandbox-demo](https://github.com/ij-23/aca-sandbox-demo). Follow the [manual application deployment](./docs/deployment.md#manual-application-deployment-used-in-this-project) with the [application input example](./infrastructure/terraform/application.auto.tfvars.example).
 
@@ -152,7 +152,7 @@ AGENTS.md                  coding-agent requirements
 README.md                  deployment and customer onboarding
 ```
 
-The host, dashboard, smoke workflow, report schemas, CI, foundation and [trusted source fixture](./demo-repo/README.md) exist. The [vetted fixture](https://github.com/ij-23/academo-fastapi-fixture) is published; its tests run only inside disposable Sandboxes. The three workflow extensions and SDK adapter are implemented for live verification. Publication defaults off until its credential/permission gates pass. OIDC deployment and a genuine full-run replay remain gated work. The current [configuration example](./.env.example) contains non-secret names only; the host never reads a Copilot PAT.
+The host, dashboard, smoke workflow, report schemas, CI, foundation and [trusted source fixture](./demo-repo/README.md) exist. The [vetted fixture](https://github.com/ij-23/academo-fastapi-fixture) is published; its tests run only inside disposable Sandboxes. All three workflow extensions and the SDK adapter have passed real Azure execution. Publication defaults off for new installations until their credential gates pass; it is enabled in this verified demo. A genuine full-run replay is available. The current [configuration example](./.env.example) contains non-secret names only; the host never reads a Copilot PAT.
 
 ## API / live UX
 
@@ -208,6 +208,6 @@ Copilot and cloud timings are nondeterministic. Record one actual successful run
 
 This deployment explicitly retains **local Terraform state**. Do not migrate it to Blob, reset it, or run Terraform against an empty hosted runner. Keep private backups of state/inputs; never commit or upload state or saved plans as Actions artifacts. Terraform remains the sole owner of application revisions.
 
-Set optional `github_build_repository = "owner/project-repository"` in private Terraform inputs, inspect/apply its plan, then configure these non-secret repository variables: `AZURE_CLIENT_ID` from `github_build_client_id`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`, `ACR_NAME`, `ACR_LOGIN_SERVER`. The build identity has **AcrPush on this registry only**, and exact main-branch GitHub federation. It cannot deploy infrastructure or read report blobs.
+Set optional `github_build_repository = "owner/project-repository"` in private Terraform inputs. Inspect `gh api repos/OWNER/REPO/actions/oidc/customization/sub`; if immutable subjects are enabled, set `github_build_subject` to the returned `sub_claim_prefix` plus `:ref:refs/heads/main`. Inspect/apply the exact plan, then configure these non-secret repository variables: `AZURE_CLIENT_ID` from `github_build_client_id`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`, `ACR_NAME`, `ACR_LOGIN_SERVER`. The build identity has **AcrPush on this registry only**, and exact main-branch GitHub federation. It cannot deploy infrastructure or read report blobs.
 
 Run the [release workflow](./.github/workflows/deploy.yml) from main. Download its `application-release` artifact containing only image digest and source SHA. On the existing state-holding machine, set `application.image` in private deployment inputs to that digest, preserve all other inputs, plan/inspect/apply using [manual deployment](./docs/deployment.md#manual-application-deployment-used-in-this-project). Drain active app runs first. The workflow does not itself update the Container App. Full automatic Terraform deployment is not claimed without a persistent trusted runner.

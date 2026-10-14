@@ -18,7 +18,7 @@ variable "registry_id" {
   type        = string
   description = "Exact project registry ARM scope for AcrPush."
 }
-variable "repository" {
+variable "subject" {
   type        = string
-  description = "GitHub owner/repository allowed to publish application images from main."
+  description = "Exact verified GitHub OIDC subject for this repository's main branch."
 }

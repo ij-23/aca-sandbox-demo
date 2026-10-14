@@ -2,18 +2,17 @@
 
 > **Current execution authorization (2026-10-14):** Project-scoped Sandbox tests/cleanup, Terraform apply, Azure deployment and GitHub publishing are authorized autonomously under [AGENTS.md](../AGENTS.md#project-execution-authorization--2026-10-14). Recurring approval checkpoints below are superseded. Technical validation, product Fix confirmation, protection of unrelated resources and the prohibition on destructive operations remain.
 
-The deployed host is one Azure Container App serving React static assets and a deterministic FastAPI API. The SDK creates disposable Copilot MicroVMs; all repository execution stays there. The remaining gates are same-PAT git push, full C dashboard publication, final persistence/telemetry checks, OIDC and complete replay/rehearsal.
+The deployed host is one Azure Container App serving React static assets and a deterministic FastAPI API. The SDK creates disposable Copilot MicroVMs; all repository execution stays there. Successful C publication, all-role telemetry and private replay are verified. Remaining gates are final recovery-fix verification, authenticated transport drills and customer-install/rehearsal verification.
 
-| Layer | Implemented locally | Remaining live gate |
+| Layer | Verified implementation | Remaining live gate |
 | --- | --- | --- |
-| React dashboard | A/B/C lifecycle and event views, reports, diff, single remediation/publication confirmation, MSAL PKCE, bearer SSE reconnect; built assets and local empty-state browser checks pass | Entra sign-in and real A/B timelines pass; C publication and complete replay pending |
-| FastAPI | Entra access-token validation, owner checks, request limits, repository allowlist, public SHA resolution, strict reports | Deployed secretless registrations and authorized fixture/user verified |
-| Orchestrator | One-run admission, A/B concurrency, bounded execution, C approval binding, persisted run state, interruption handling | Real concurrent A/B and C failed-validation pass; successful publication pending |
-| Blob | Managed-identity adapter, private artifacts, append JSONL before event delivery, cursor-based replay | UAMI access passes; append-history revalidation follows conditional-create correction |
-| Sandbox runtime | M0-CLI97 genuine workflow, binding, upload/read/polling and exact-ID cleanup passed | A/B and C failed-validation executed genuinely; same-PAT git push403 |
-| Terraform | Deployed 23-resource foundation and verified RBAC | App/Entra/telemetry deployed; per-create egress used; remote state/OIDC open |
+| Browser/auth | Entra PKCE, authenticated A/B/C, private URL/diff, complete labelled replay | Explicit SSE transport drill, final viewport/rehearsal |
+| Orchestrator | Concurrent A/B, single Fix consent, C validation/private push, runtime cancellation/reconciliation | Final timestamp-fix deployment/retest; HTTP-process failure drill |
+| Blob | UAMI read-back of 95 contiguous events, three reports/diff, actual replay, deleted ownership | Customer-install verification |
+| Sandbox runtime | Built-in disk, genuine CLI1.0.97 workflows, bounded polling, all-role LAW ingestion, exact404 cleanup | No remaining core workflow capability blocker |
+| Terraform/release | Foundation/app/Entra/telemetry and least-scope OIDC image release; local-state image apply | Separate clean-customer install |
 
-The app never creates a fake successful run. By default `LIVE_EXECUTION_ENABLED=false`; a configured and verified executor is also required. Unit-test executors and in-memory stores exist only in test files. Replay must consume recorded genuine events and remain labeled prerecorded; no fixture currently claims a successful real run.
+The app never creates a fake successful run. By default `LIVE_EXECUTION_ENABLED=false`; a configured and verified executor is also required. Unit-test executors and in-memory stores exist only in test files. Replay must consume recorded genuine events and remain labeled prerecorded; the captured fixture contains a verified successful A/B/C run.
 
 The [trusted source fixture](../demo-repo/README.md) is published at https://github.com/ij-23/academo-fastapi-fixture and executed only inside disposable Sandboxes. Its intentional document-path issue uses harmless temporary canaries in the regression tests. Platform tests/CI and the Docker build exclude fixture execution and packaging. A fixture test failure is an observed result only after a real Sandbox run, not because a local expectation predicts it.
 

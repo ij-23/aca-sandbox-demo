@@ -33,6 +33,9 @@ class Orchestrator:
                 "cleanup_failed",
             ):
                 value["status"] = "interrupted"
+                # This is when interruption was detected, not an invented crash
+                # time. Preserve it across cleanup retries so UI timers stop.
+                value["finished_at"] = value.get("finished_at") or now()
                 try:
                     try:
                         await self.store.save_run(value)
