@@ -27,6 +27,7 @@ def perform(group, path, scope, connection_id, **kwargs):
         "status": "running",
         "cleanup": "not_required",
         "create_requests": 0,
+        "labels": labels,
     }
     sandbox = None
     requested = returned = False
@@ -46,6 +47,7 @@ def perform(group, path, scope, connection_id, **kwargs):
             ):
                 raise RuntimeError("Built-in Copilot disk is not Ready")
             before = {r.id for r in group.list_sandboxes()}
+            evidence["before"] = [{"id": identifier} for identifier in before]
             if any((r.labels or {}).get("owner") == smoke.OWNER for r in group.list_sandboxes()):
                 raise RuntimeError("Previous smoke ownership requires cleanup")
             evidence["create_requests"] = 1
@@ -58,6 +60,8 @@ def perform(group, path, scope, connection_id, **kwargs):
                 cpu="1000m",
                 memory="2048Mi",
                 ports=[],
+                entrypoint=["/bin/sh", "-c"],
+                cmd=["touch /tmp/academo-telemetry.jsonl; exec tail -n +1 -F /tmp/academo-telemetry.jsonl"],
                 labels=labels,
                 auto_suspend_seconds=300,
                 polling_timeout=80,
@@ -65,7 +69,9 @@ def perform(group, path, scope, connection_id, **kwargs):
             ).result(timeout=90)
             returned = True
             evidence.update(sandbox_id=sandbox.sandbox_id, creation_seconds=round(time.monotonic() - t, 3))
+            smoke.save(path, evidence)
             model = sandbox.get()
+            evidence["telemetry_config_readback"] = group.verify_telemetry(sandbox.sandbox_id)
             if sandbox.sandbox_id in before or model.ports or connection_id not in (model.connections or []):
                 raise RuntimeError("Unexpected sandbox scope")
             control = f"/tmp/academo-c-fail-{nonce}"
@@ -82,6 +88,16 @@ def perform(group, path, scope, connection_id, **kwargs):
                     files["source/" + str(local.relative_to(ROOT / "demo-repo"))] = local
             for remote, local in files.items():
                 sandbox.write_file(f"{control}/{remote}", local.read_bytes())
+            sandbox.write_file(
+                f"{control}/telemetry_context.json",
+                json.dumps(
+                    {
+                        "run_id": run_id,
+                        "sandbox_id": sandbox.sandbox_id,
+                        "role": "remediation",
+                    }
+                ),
+            )
             execute(f"cd {control} && python3 cli_setup.py prepare-cli", 80)
             args = {
                 "run_id": run_id,
@@ -145,6 +161,8 @@ def perform(group, path, scope, connection_id, **kwargs):
             evidence["status"] = "passed"
     except BaseException as error:
         evidence.update(status="failed", error_type=type(error).__name__)
+        if hasattr(group, "telemetry_readback"):
+            evidence["telemetry_readback"] = group.telemetry_readback
     finally:
         if requested:
             t = time.monotonic()

@@ -424,3 +424,29 @@ This agrees with the official [extension documentation](https://github.com/githu
 Project-extension trust alone is insufficient evidence of this grant. The prepared
 noninteractive runner's grant remains unverified; no blanket permission flag,
 credential scraping, token file or alternate identity has been introduced.
+
+## M0-C-FAIL and telemetry integration — 2026-10-14
+
+Official CLI 1.0.97 `defineWorkflow` requires `meta.phases`, including an empty array. Omitting it caused extension startup failure, confirmed by sanitized process log. All three definitions now supply phases and argsSchema. C then executed a genuine AI fix; no prompt-only replacement.
+
+The built-in disk's Python 3.14 lacks ensurepip. The trusted validation helper creates `venv --without-pip`, verifies the official pip 26.2 universal wheel SHA256, and invokes `venv/bin/python pip.whl/pip install --require-hashes --only-binary=:all:`. This succeeded inside ACA. The original fixture tests plus a smoke-only deliberate failure ran with pytest exit 1. C returned failed validation, skipped create_repo/push/verify_remote, and produced diff/checks/events. CLI exit 0 means the workflow completed; the report correctly says validation failed.
+
+Successful evidence: `.local/m0-c-fail-telemetry-06.json`; Sandbox `5fc61a0e-6a13-4c47-b50f-34064630b151`, exact-ID deletion confirmed. Creation 5.767s, workflow 21.679s, cleanup 2.308s. File polling retrieved actual events while running.
+
+Official [Sandbox telemetry](https://sandboxes.azure.com/docs/sandboxes/telemetry) requires per-create telemetryConfig. SDK 0.1.0b4 drops unknown kwargs, so the pinned subclass inserts the documented object on the exact create PUT before serialization. The group has an ingestion-only UAMI, DCE, DCR, custom AcademoSandboxLogs_CL table and DCR-scoped Monitoring Metrics Publisher. GET omits telemetryConfig. Runtime writes only fixed workflow metadata to container stdout; **actual ingestion remains unverified** and no SDK readback claim is made.
+
+## Current Azure runtime evidence — 2026-10-14
+
+Official Node SDK 1.0.21 `CopilotClient` with `RuntimeConnection.forStdio`, `createSession`, `session.workflow.run` and `session.disconnect` executes genuine workflows in the Sandbox using CLI1.0.97. A narrowly checked `onPermissionRequest` approves only `extension-env-access`, the project extension and COPILOT_GITHUB_TOKEN. `joinSession({requestedEnvironmentVariables:[...]})` then permits GitHub /user (200, ij-23/User) without any manual token injection. Evidence `.local/credential-sdk-02.json`.
+
+The same credential created private academo-pat-check-20261014 (HTTP201; accepted endpoint permissions administration=write; repository_creation=write), but git push returned 403 “Write access to repository not granted.” Retrying only that exact empty repository reproduced the error. Contents read/write and future-repository coverage require user verification. The permission header describes endpoint requirements, not the token’s granted permissions. Both Sandboxes were deleted/exact404. No alternate credential is used for C.
+
+Official telemetryConfig delivered 15 trusted container-stdout probe records into AcademoSandboxLogs_CL for run c74bcebf-9519-4a29-afc4-b6d62fd5ac08. This proves the ingestion route, not all A/B/C workflow delivery. The adapter now uses explicit shell/sleep entrypoint and writes fixed boundary metadata to /proc/1/fd/1. Exact role/Sandbox-correlated ingestion remains open.
+
+The Azure host validates Entra delegated tokens; browser PKCE login and authenticated run creation passed, anonymous calls return401. UAMI accessed all private Blob containers and persisted first-run events. First A/B execution exposed a `kind` event-payload collision in Python forwarding; fixed in both orchestrator and event store. Both failed-run Sandboxes cleaned up.
+
+### Verified workflow telemetry and append-blob semantics
+
+The C run c1285860-9b2e-4973-88ec-3f0516a831e1 produced18 LAW records with exact Sandbox586a8350-32f0-49f0-a88d-3327ed5fbde0 and role remediation. Main entrypoint `touch /tmp/academo-telemetry.jsonl; exec tail -n +1 -F /tmp/academo-telemetry.jsonl` forwards the trusted runtime's metadata journal to collected stdout. Direct writes from detached execution to /proc/1/fd/1 were not observed in LAW and are no longer used. Copilot disk and provider connection are unchanged.
+
+Live A/B genuine workflows passed execution with expected fixture results (A verified source finding, B 2 passed/2 failed and runtime skipped). The live dashboard received48 events, but a post-run Blob read revealed only the last event. Installed azure-storage-blob documents create_append_blob as overwriting any existing blob. Conditional creation with MatchConditions.IfMissing fixes this; validate subsequent full persisted histories before claiming reconnect/replay durability.

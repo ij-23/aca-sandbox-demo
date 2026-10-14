@@ -1,0 +1,15 @@
+# Copy to private deployment.auto.tfvars (HCL), then replace every example value.
+# Keep this file alongside the foundation terraform.tfvars; never include PATs.
+entra_public_origin = "https://ca-example.example.swedencentral.azurecontainerapps.io"
+application = {
+  image = "registry.azurecr.io/academo-app@sha256:0000000000000000000000000000000000000000000000000000000000000000"
+  api_client_id = "00000000-0000-0000-0000-000000000000"
+  spa_client_id = "00000000-0000-0000-0000-000000000000"
+  authorized_users = ["00000000-0000-0000-0000-000000000000"]
+  allowed_repositories = ["https://github.com/owner/reviewed-fastapi-fixture"]
+  credential_connection_id = "00000000-0000-0000-0000-000000000000"
+  publication_owner = "owner"
+  public_origin = "https://ca-example.example.swedencentral.azurecontainerapps.io"
+  live_execution_enabled = false
+  publication_enabled = false
+}

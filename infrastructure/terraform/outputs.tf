@@ -58,3 +58,11 @@ output "manual_setup" {
   value       = { portal = "https://sandboxes.azure.com", group = module.sandbox_group.name, action = "Sandbox Groups > this group > Security > Credentials > GitHub Copilot > Set Token. Follow README.md; never put the token in Terraform." }
   description = "Manual credential setup instructions; no tokens."
 }
+output "sandbox_telemetry_config" {
+  value       = module.sandbox_telemetry.config
+  description = "Non-secret telemetryConfig for every disposable Sandbox."
+}
+output "entra_client_ids" {
+  value       = var.entra_public_origin == null ? null : { api = module.entra_auth[0].api_client_id, spa = module.entra_auth[0].spa_client_id }
+  description = "Non-secret project-created Entra client IDs."
+}

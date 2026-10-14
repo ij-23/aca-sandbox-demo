@@ -12,6 +12,14 @@ Build a polished **15-minute live demo** where an authenticated user submits a p
 
 This is **not** a SaaS/multi-tenant platform; each customer deploys their own instance into their own subscription. No Foundry, Azure OpenAI, AKS, custom sandbox images, or arbitrary-language build support. The **application** may and should have its own container image in ACR; that is distinct from the **built-in Copilot sandbox image**, which MUST NOT be rebuilt.
 
+## Project execution authorization — 2026-10-14
+
+The user authorizes autonomous completion of this demo in the existing academo project scope. Do not request recurring approvals for owned disposable Sandbox creation/cleanup, project Terraform plan/apply, scoped telemetry/identity/RBAC setup, application image build/push, Azure deployment, project GitHub publication or real E2E testing. Prepare and inspect exact operations, verify targets and reject destructive plans before execution; authorization does not remove technical gates.
+
+Protect unrelated resources, the pre-existing Sandbox and original source repositories. Do not destroy static infrastructure, replace/delete existing resources, overwrite GitHub destinations, rotate credentials or expose secrets. Delete only disposable Sandboxes created and tracked by this project as normal test/run cleanup. GitHub repository deletion and other destructive operations remain outside scope. Ask only for genuinely missing customer values or external permissions, and continue independent work.
+
+The dashboard's single Fix Vulnerability confirmation remains a required product behavior. The agent is authorized to exercise that confirmation during the demo's E2E tests; no separate chat approval or Publish button is required. This section supersedes older approval checkpoints recorded in historical progress and compatibility evidence.
+
 ## 1. Mandatory Terraform skill: `terraform-builder`
 
 **All provisioning, modifying, importing or destroying Azure infrastructure with Terraform MUST be performed following the agent skill named exactly `terraform-builder`.** Before writing any `*.tf` files or applying infrastructure:
@@ -76,7 +84,7 @@ Handle the **container image bootstrap cycle** correctly:
 2. **Build and push the app image** to ACR from GitHub Actions (or documented one-off bootstrap build) using workload-identity federation/OIDC.
 3. **Finalize Terraform/application deployment** with the actual image digest/tag and Container App auth, environment/config, storage access, managed identity. Avoid Terraform and `az containerapp update` concurrently fighting over image state; choose a single documented owner for image revision updates.
 4. **Manual GitHub Copilot PAT configuration** at Sandbox Group level through https://sandboxes.azure.com (details in `README.md`), after Sandbox Group creation. Never put it in `.tfvars`, Terraform state, GitHub secrets for the sandbox credential, Docker build arguments, Container App env or repository.
-5. Verify login protection, backend identity/data-plane access, Copilot auth and real minimal Dynamic Workflow in a disposable sandbox; then test **all three authentic Dynamic Workflows** including C (with explicit authorization before any GitHub write).
+5. Verify login protection, backend identity/data-plane access, Copilot auth and real minimal Dynamic Workflow in a disposable sandbox; then test **all three authentic Dynamic Workflows** including C within this standing demo authorization.
 
 The resulting public repository must document both a GitHub Actions CI/CD path and a manual Terraform/bootstrap path with precise, verified commands. The deployed application requires **no local app host** and serves its UI/API from Azure. Do not claim completely unattended install: Copilot credential setup (and potentially Entra consent) are manual checkpoints.
 
@@ -134,7 +142,7 @@ No unnecessary microservices or always-running worker in MVP. One container app/
 - `POST /api/runs`, `GET /api/runs/{id}`, `GET /api/runs/{id}/events` (SSE, ID/Last-Event-ID, heartbeat, resume), `POST /api/runs/{id}/remediate` (finding ID and explicit user approval), `POST /api/runs/{id}/cleanup`, `GET /api/healthz`, `GET /api/readyz` (non-secret). All sensitive endpoints require authenticated authorized user; ownership checks on run IDs.
 - Structured event schema: `event_id`, `run_id`, `timestamp`, `sandbox_role` (`security|build|remediation|system`), `sandbox_id`, `type`, `step_id`, `payload`; instrument **real** workflow boundaries; no fake AI reasoning, metrics or step transitions. Append sanitized replayable JSONL/events to Blob Storage, and retain recent in-memory ring buffer for live SSE. Poll SDK output if true streaming unsupported; disclose actual behavior.
 - Validate strictly `review.json`, `build.json`, `remediation.json`; aggregate real results and evidence with accurate states `pending|running|passed|failed|skipped|timed_out`; report errors and checked/skipped limitations.
-- Structured telemetry in Azure Monitor/Log Analytics/Application Insights with correlation IDs; redact before telemetry and SSE; avoid saving secrets or full potentially sensitive code in Blob.
+- Every Sandbox A/B/C must be created with the official `telemetryConfig` targeting the existing Log Analytics workspace through verified DCR/DCE and group-assigned managed identity. Verify actual ingestion by exact Sandbox/run markers. Structured telemetry carries correlation IDs; redact before telemetry and SSE; avoid saving secrets or full potentially sensitive code in Blob.
 
 ### Dashboard (presentation-grade, 1080p, dark/high contrast)
 
@@ -166,7 +174,7 @@ One **personal-account-owned fine-grained PAT** configured **manually** at **San
 - **Repository access: All repositories** for the demo owner's current **and future** repositories, so the token can access the newly created `{repo}-fixed` repo. `Only select repositories` is unsuitable for automatically writing to repos created later without updating token scope. This is deliberately broad: never use on a real personal or corporate account. GitHub's access/ownership and policy constraints may vary; verify with a disposable private test repo first.
 - Short expiration, account-level quota/rate limit awareness; store token only as Sandbox Group provider credential. If token permissions change, update the group token manually and use **fresh** Sandboxes to verify the new capability. Do not print a token or ask the user to paste it.
 
-For **Milestone 0**, in addition to Copilot and workflow auth, verify **the third real Dynamic Workflow** including its failing-tests branch (no remote write), and separately repository creation and a harmless test push with that *same injected credential from a disposable sandbox* only after user approval to create a private test repository; remove the test repo only with further explicit approval. If token is not actually available to GitHub CLI/git operations in C, document the exact boundary and block the publish feature: Copilot authentication does not imply arbitrary Git API access. Never bypass with a different credential unless the user revises the demo design.
+For **Milestone 0**, in addition to Copilot and workflow auth, verify **the third real Dynamic Workflow** including its failing-tests branch (no remote write), and separately repository creation and a harmless test push with that *same injected credential from a disposable sandbox* under the standing project authorization; do not delete the test repository without separate destructive-operation authorization. If token is not actually available to GitHub CLI/git operations in C, document the exact boundary and block the publish feature: Copilot authentication does not imply arbitrary Git API access. Never bypass with a different credential unless the user revises the demo design.
 
 **Security tradeoff:** This is a **trusted-fixture demo only**. The same PAT is reachable by processes inside C and has GitHub write/create permissions. The MicroVM protects outside infrastructure, **not the token from untrusted repository code executed inside**. Hardening for customer/production use requires a separate publishing identity or broker, narrowly scoped permissions, explicit destination authorization, and independent review. A successful scan is not proof of safety.
 
@@ -181,7 +189,7 @@ For **Milestone 0**, in addition to Copilot and workflow auth, verify **the thir
 ## 9. Implementation milestones and quality gates
 
 0. **Discovery/PoC (GATE):** Find/read `terraform-builder` skill; verify providers and sandbox SDK, built-in Copilot preset, group-scoped auth, real CLI Dynamic Workflows, actual streaming. Document compatibility and smoke test. Stop if impossible.
-1. **Terraform cloud foundation:** use skill to provision all static resources and identity/auth/Blob/ACA/ACR; implement bootstrap deployment and outputs; validate `terraform fmt/validate/plan`, provider schema, RBAC. No live `apply` or costly resource changes without user authorization.
+1. **Terraform cloud foundation:** use skill to provision all static resources and identity/auth/Blob/ACA/ACR; implement bootstrap deployment and outputs; validate `terraform fmt/validate/plan`, provider schema, RBAC. Project-scoped plan/apply and deployment are authorized; inspect saved plans and reject delete/replacement or unrelated changes.
 2. **App container + CI/CD:** multi-stage Dockerfile to serve React static assets via FastAPI, GitHub Actions OIDC push/deploy, one HTTPS endpoint, Entra auth and Blob integration. Validate from Azure URL.
 3. **Orchestrator + actual A/B workflows:** immutable SHA, two concurrently running real Copilot Dynamic Workflows, typed schemas, timeouts, reliable cleanup, real integration run.
 4. **Live observability dashboard:** all lifecycle/step events, logs, SSE reconnect, report, Replay mode, event Blob persistence, no simulated live telemetry.
@@ -206,7 +214,7 @@ For **Milestone 0**, in addition to Copilot and workflow auth, verify **the thir
 - Work in incremental independently testable slices. For each milestone: document design assumptions, exact commands, test results, unresolved risks; maintain `docs/progress.md`.
 - Do not infer nonexistent Terraform skill semantics, Copilot CLI flags, sandbox disk names or preview API capabilities. Verify from installed tooling/docs before authoring production integration. No silent fallback to mock cloud runs; explicit local test doubles allowed **only in unit tests** and clearly labeled UI replay permitted.
 - Ask only for truly missing user-specific values: subscription, region, tenant, authorized Entra principals, existing/reused Sandbox Group, customer GitHub repo and OIDC principal. **Never ask the user to paste PAT into chat or code.**
-- Before `terraform apply`, role grants, provisioning paid resources, changing existing credentials or publishing repositories, present the exact plan and obtain approval.
+- Use the standing project authorization above for scoped operations. Record and inspect exact Terraform plans and GitHub destinations; proceed without recurring approval. Credential changes and destructive/unrelated operations are excluded.
 - `README.md` must be the canonical customer-facing deployment guide, including **manual portal PAT steps** and customer limitations.
 
 **Presentation message:** “Give every AI agent its own isolated computer.” The value is real execution isolation + observable GitHub Copilot Dynamic Workflows, not fake agent animation or automatic enterprise security approval.

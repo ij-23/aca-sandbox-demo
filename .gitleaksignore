@@ -1,0 +1,4 @@
+# Exact historical false positives: empty CREDENTIAL_CONNECTION_ID followed by public REGION=swedencentral.
+d8c9fc43939932df7d10317beda3fed330cfe3a5:.env.example:generic-api-key:13
+6fa7de8231cf942931a62def94a870b9aabf089d:.env.example:generic-api-key:13
+a03e6c802aaf2a89435b2c54c9cb9581ee7ad0d0:.env.example:generic-api-key:13

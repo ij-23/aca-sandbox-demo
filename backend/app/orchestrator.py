@@ -82,10 +82,15 @@ class Orchestrator:
                 raise
 
     async def _role(self, value, role):
-        async def emit(kind, *, sandbox_id=None, step_id=None, **payload):
-            await self.events.emit(value["run_id"], role, kind, sandbox_id=sandbox_id, step_id=step_id, **payload)
+        async def emit(event_type, *, sandbox_id=None, step_id=None, **payload):
+            await self.events.emit(value["run_id"], role, event_type, sandbox_id=sandbox_id, step_id=step_id, **payload)
 
-        report = await self.executor.run(value, role, emit)
+        try:
+            report = await self.executor.run(value, role, emit)
+        except Exception as error:
+            # Exception text can contain SDK responses; expose only the class.
+            await emit("workflow.failed", error_type=type(error).__name__, status="failed")
+            raise
         schema = {"security": ReviewReport, "build": BuildReport, "remediation": RemediationReport}[role]
         report = schema.model_validate(report).model_dump()
         if report["commit_sha"] != value["commit_sha"]:

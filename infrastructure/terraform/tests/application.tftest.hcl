@@ -1,11 +1,14 @@
 # Offline provider doubles; this is not deployment validation.
 mock_provider "azurerm" {}
 mock_provider "azapi" {}
+mock_provider "azuread" {}
 variables {
-  subscription_id = "11111111-1111-1111-1111-111111111111"
-  tenant_id       = "22222222-2222-2222-2222-222222222222"
-  region          = "eastus2"
-  name_prefix     = "unittest"
+  entra_public_origin = null
+  application         = null
+  subscription_id     = "11111111-1111-1111-1111-111111111111"
+  tenant_id           = "22222222-2222-2222-2222-222222222222"
+  region              = "eastus2"
+  name_prefix         = "unittest"
 }
 run "application_requires_authorized_users" {
   command = plan

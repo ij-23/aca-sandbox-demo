@@ -1,0 +1,9 @@
+{
+  "name": "academo-sandbox-workflow-host",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "dependencies": {
+    "@github/copilot-sdk": "1.0.21"
+  }
+}

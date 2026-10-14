@@ -25,6 +25,7 @@ class Settings:
     event_retention_limit: int = 10000
     publication_owner: str = ""
     publication_enabled: bool = False
+    sandbox_telemetry_config: str = ""
     sandbox_egress_hosts: tuple[str, ...] = (
         "github.com",
         "*.github.com",
@@ -33,6 +34,7 @@ class Settings:
         "default.exp-tas.com",
         "pypi.org",
         "files.pythonhosted.org",
+        "registry.npmjs.org",
     )
 
     @classmethod

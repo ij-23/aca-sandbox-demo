@@ -1,10 +1,14 @@
 # From Untrusted Code to Trusted Decisions
 
+> **Current execution authorization (2026-10-14):** Project-scoped Sandbox tests/cleanup, Terraform apply, Azure deployment and GitHub publishing are authorized autonomously under [AGENTS.md](./AGENTS.md#project-execution-authorization--2026-10-14). Recurring approval checkpoints below are superseded. Technical validation, product Fix confirmation, protection of unrelated resources and the prohibition on destructive operations remain.
+
 **Azure-hosted Open Source Evaluation Demo** — Azure Container Apps Sandboxes + GitHub Copilot Dynamic Workflows.
 
 [MIT license](./LICENSE) · [Contributing](./CONTRIBUTING.md)
 
-> **Implementation in progress.** The 23-resource Azure foundation is deployed. The React/FastAPI host, authentication, persistence adapter, platform tests and application image are implemented locally. The genuine minimal Dynamic Workflow passed in ACA on CLI 1.0.97. Application deployment, full A/B/C integration and GitHub publication remain unverified. Live execution is disabled until these gates pass. See [progress](./docs/progress.md) and [compatibility](./docs/compatibility.md) for evidence.
+> **Live validation in progress.** The Azure foundation, telemetry DCR/DCE, Entra registrations and React/FastAPI Container App are deployed. Browser sign-in, managed-identity Blob access, genuine CLI 1.0.97 workflow and C’s failed-validation branch pass. Concurrent genuine A/B, all-role LAW ingestion and full48-event private Blob persistence pass. Successful C publication and full replay/rehearsal remain under test. The same group PAT can create a private repository but git push currently returns 403; publication remains disabled. See [progress](./docs/progress.md) and [compatibility](./docs/compatibility.md).
+
+The project source is [ij-23/aca-sandbox-demo](https://github.com/ij-23/aca-sandbox-demo). Follow the [manual application deployment](./docs/deployment.md#manual-application-deployment-used-in-this-project) with the [application input example](./infrastructure/terraform/application.auto.tfvars.example).
 
 ## Developer quick start
 
@@ -26,7 +30,7 @@ Open `http://127.0.0.1:8000` for development inspection. This is not the require
 
 Build the **application** image with `docker build --platform linux/amd64 -t aca-sandbox-demo:local .`. [Deployment guidance](./docs/deployment.md#local-preparation-and-validation) includes the optional package proxy configuration used in this environment. Never pass credentials as build arguments. CI in [.github/workflows/ci.yml](./.github/workflows/ci.yml) runs platform checks and an image build only; Azure OIDC deployment is not configured yet.
 
-The approved M0-CLI97 test passed on 2026-10-14, including real Copilot AI, branching, live file polling and exact-ID cleanup. The [next prepared test](./docs/pending-approvals.md#m0-c-fail--prepared-not-executed) exercises C’s failed-validation/no-publication branch and requires separate approval. The already-applied foundation plan must not be reapplied.
+The approved M0-CLI97 test passed on 2026-10-14, including real Copilot AI, branching, live file polling and exact-ID cleanup. M0-C-FAIL also passed: actual AI patching and failing pytest caused the deterministic gate to skip all GitHub writes. The already-applied foundation plan must not be reapplied.
 
 ## Intended live experience
 
@@ -60,7 +64,7 @@ The Sandbox Group is separate from the **Container Apps Managed Environment** ho
 |---|---|
 | Resource Group | Owns resources for a customer deployment |
 | Azure Container Registry | Stores React/FastAPI **application image** |
-| Log Analytics Workspace | Container Apps logging |
+| Log Analytics Workspace + DCE/DCR + ingestion UAMI | Host diagnostics and fixed Sandbox workflow metadata via official telemetryConfig |
 | Azure Container Apps Managed Environment | Hosting environment |
 | Azure Container App | One HTTPS host for React, API, SSE and orchestration |
 | User Assigned Managed Identity | App access to sandboxes and blob data without secrets |
@@ -83,7 +87,7 @@ The three individual **Sandboxes are dynamic**, created/deleted at runtime by Fa
 - The coding agent must have the **`terraform-builder` skill** installed and must read its `SKILL.md` before creating/updating Terraform.
 - A reviewed **public Python/FastAPI demo repository**, ideally containing a benign intentional issue and fast pytest tests. Don't start with unknown hostile repositories.
 
-## Deployment: intended two-stage sequence
+## Deployment: bootstrap and application phases
 
 > Exact working Terraform, GitHub Actions and CLI commands must be produced and verified during implementation; **do not guess resource arguments or blindly run the example concepts below**.
 
@@ -109,7 +113,7 @@ The three individual **Sandboxes are dynamic**, created/deleted at runtime by Fa
 8. In the group navigation, open **Security → Credentials** (portal labels may change).
 9. Find **GitHub Copilot**, select **Set Token** (or the equivalent Configure action), paste the fine-grained PAT into **Token**, and select **Save**.
 10. Confirm the GitHub Copilot row displays **Configured**. The portal intentionally does not reveal the token after saving.
-11. **Verify real use**, not just the badge: create a temporary sandbox using the **built-in GitHub Copilot preset**, execute a minimal noninteractive Copilot prompt and, separately, a minimal **real Dynamic Workflow**; no `/login` should be needed. Additionally, after separate authorization to create a disposable private test repo, verify **that exact group PAT** can create a repo and push a harmless file from inside a test Sandbox; confirm repo URL, then clean up as separately approved. Do not assume the credential is accessible to arbitrary git operations just because Copilot CLI authenticates. Delete the test sandbox. A Configured status alone is not proof of entitlement, compatibility or successful execution.
+11. **Verify real use**, not just the badge: create a temporary sandbox using the **built-in GitHub Copilot preset**, execute a minimal noninteractive Copilot prompt and, separately, a minimal **real Dynamic Workflow**; no `/login` should be needed. Additionally, within the authorized demo scope, create a disposable private test repo and, verify **that exact group PAT** can create a repo and push a harmless file from inside a test Sandbox; confirm repo URL, then clean up as separately approved. Do not assume the credential is accessible to arbitrary git operations just because Copilot CLI authenticates. Delete the test sandbox. A Configured status alone is not proof of entitlement, compatibility or successful execution.
 12. For rotation: open the same **Security → Credentials → GitHub Copilot → Set Token**, enter the new PAT, Save, and **recreate or restart existing sandboxes** as needed to ensure they pick up the new credential. Expire/revoke demo tokens after presentations.
 
 **Official references:** [Provider credentials](https://staging.sandboxes.azure.com/docs/sandboxes/credentials), [Sandbox portal quickstart](https://learn.microsoft.com/en-us/azure/container-apps/sandboxes-quickstart-portal). As of the referenced provider-credential documentation, this token-management function is not available in the `azure-containerapps-sandbox` Python SDK; therefore the manual portal step is required in this project.
@@ -148,7 +152,7 @@ AGENTS.md                  coding-agent requirements
 README.md                  deployment and customer onboarding
 ```
 
-The host, dashboard, smoke workflow, report schemas, CI, foundation and [trusted source fixture](./demo-repo/README.md) exist. The fixture has not been executed or published; its tests run only inside a disposable Sandbox. The three workflow extensions and SDK adapter are implemented for live verification. Publication defaults off until its credential/permission gates pass. OIDC deployment and a genuine full-run replay remain gated work. The current [configuration example](./.env.example) contains non-secret names only; the host never reads a Copilot PAT.
+The host, dashboard, smoke workflow, report schemas, CI, foundation and [trusted source fixture](./demo-repo/README.md) exist. The [vetted fixture](https://github.com/ij-23/academo-fastapi-fixture) is published; its tests run only inside disposable Sandboxes. The three workflow extensions and SDK adapter are implemented for live verification. Publication defaults off until its credential/permission gates pass. OIDC deployment and a genuine full-run replay remain gated work. The current [configuration example](./.env.example) contains non-secret names only; the host never reads a Copilot PAT.
 
 ## API / live UX
 

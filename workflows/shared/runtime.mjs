@@ -1,12 +1,19 @@
 // Trusted control code. Uploaded outside the submitted repository.
-import { appendFileSync } from 'node:fs';
+import { appendFileSync, readFileSync } from 'node:fs';
 import { execFile } from 'node:child_process';
 export function runtime(ctx) {
   const input = ctx.args;
   if (!/^[0-9a-f-]{36}$/.test(input.run_id) || !/^[0-9a-f]{40}$/.test(input.commit_sha)) throw Error('Invalid provenance');
-  const emit = (type, step_id, payload) => appendFileSync('events.jsonl', JSON.stringify({
-    run_id: input.run_id, workflow_run_id: ctx.runId, timestamp: new Date().toISOString(), type, step_id, payload,
-  }) + '\n');
+  const telemetry = JSON.parse(readFileSync('telemetry_context.json', 'utf8'));
+  const emit = (type, step_id, payload) => {
+    appendFileSync('events.jsonl', JSON.stringify({
+      run_id: input.run_id, workflow_run_id: ctx.runId, timestamp: new Date().toISOString(), type, step_id, payload,
+    }) + '\n');
+    // The container entrypoint tails this fixed metadata journal to its own stdout.
+    // Detached exec /proc/1 descriptors are not a verified collector input.
+    appendFileSync('/tmp/academo-telemetry.jsonl', JSON.stringify({source:'academo', ...telemetry,
+      event_type:type, step_id:step_id ?? '', msg:'workflow boundary'}) + '\n');
+  };
   const command = async (action, data = {}) => {
     // Argument data uses stdin, never interpolated into shell code.
     const child = execFile('python3', ['operations.py', action], {

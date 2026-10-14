@@ -17,7 +17,7 @@ export async function initialize(config:Config) {
 }
 async function initializeOnce(config:Config) {
   scope = config.api_scope;
-  identity = new PublicClientApplication({auth:{clientId:config.spa_client_id, authority:`https://login.microsoftonline.com/${config.tenant_id}`, redirectUri:location.origin}, cache:{cacheLocation:'sessionStorage'}});
+  identity = new PublicClientApplication({auth:{clientId:config.spa_client_id, authority:`https://login.microsoftonline.com/${config.tenant_id}`, redirectUri:`${location.origin}/`}, cache:{cacheLocation:'sessionStorage'}});
   await identity.initialize();
   const result = await identity.handleRedirectPromise();
   if (result) identity.setActiveAccount(result.account);
@@ -47,9 +47,10 @@ export function decodeSSE(buffer:string): {events:Event[]; remainder:string} {
   }
   return {events, remainder};
 }
-export async function observe(id:string, after:number, signal:AbortSignal, receive:(event:Event)=>void) {
+export async function observe(id:string, after:number, signal:AbortSignal, receive:(event:Event)=>void, connected:()=>void=()=>{}) {
   const response = await fetch(`/api/runs/${id}/events`, {signal, headers:{Authorization:`Bearer ${await bearer()}`, 'Last-Event-ID':String(after)}});
   if (!response.ok || !response.body) throw new Error(`Event connection failed (${response.status})`);
+  connected();
   const reader=response.body.getReader(), decoder=new TextDecoder();
   let buffer='';
   try { while(true) { const {done,value}=await reader.read(); if(done)break; buffer+=decoder.decode(value,{stream:true}); const parsed=decodeSSE(buffer); buffer=parsed.remainder; for(const event of parsed.events)receive(event); } }

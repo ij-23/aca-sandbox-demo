@@ -1,6 +1,6 @@
 import { defineWorkflow, joinSession } from '@github/copilot-sdk/extension';
 import { runtime, limits } from '../../runtime.mjs';
-const workflow = defineWorkflow({meta: {name:'remediation', description:'Copilot fix with deterministic validation and private publication gate', limits}, run: async ctx => {
+const workflow = defineWorkflow({meta: {name:'remediation', phases: [], argsSchema: {type:"object"}, description:'Copilot fix with deterministic validation and private publication gate', limits}, run: async ctx => {
   const r = runtime(ctx); r.emit('workflow.started', null, {transport:'sdk_file_polling'});
   await r.step('checkout', () => r.command('checkout'));
   const inspected = await r.step('inspect', () => r.command('inspect'));

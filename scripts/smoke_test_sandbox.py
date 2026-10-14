@@ -220,6 +220,8 @@ def perform(group, path, scope, connection_id, extension=EXTENSION, *, expected_
                 memory="2048Mi",
                 labels=labels,
                 ports=[],
+                entrypoint=["/bin/sh", "-c"],
+                cmd=["exec sleep infinity"],
                 auto_suspend_seconds=300,
                 polling_timeout=80,
                 polling_interval=2,
@@ -389,11 +391,12 @@ def parser():
     p.add_argument(
         "--pinned-cli",
         action="store_true",
-        help="Only with approval: download checksum-pinned official 1.0.97 into this disposable sandbox's control directory",
+        help="Download checksum-pinned official 1.0.97 into the owned disposable Sandbox control directory",
     )
-    p.add_argument("--execute", action="store_true", help="Create/run/delete a paid sandbox only after approval")
+    p.add_argument("--execute", action="store_true", help="Create/run/delete one bounded Sandbox within the authorized group")
     p.add_argument("--confirm-group", help="Exact approved Sandbox Group ARM ID")
     p.add_argument("--output", type=Path, default=ROOT / ".local/smoke-evidence.json")
+    p.add_argument("--telemetry-config", type=Path, help="Terraform-exported non-secret telemetryConfig JSON")
     return p
 
 
@@ -442,9 +445,15 @@ def main(argv=None, *, performer=perform):
     if version("azure-containerapps-sandbox") != SDK_VERSION:
         raise RuntimeError("Install the exact pinned sandbox SDK")
     # Lazy imports ensure plan-only mode and unit tests never contact Azure.
-    from azure.containerapps.sandbox import SandboxGroupClient, endpoint_for_region
+    from azure.containerapps.sandbox import endpoint_for_region
     from azure.core.pipeline.transport import RequestsTransport
     from azure.identity import DefaultAzureCredential
+
+    sys.path.insert(0, str(ROOT / "backend"))
+    from app.sandbox_telemetry import TelemetrySandboxGroupClient
+
+    if not args.telemetry_config:
+        raise ValueError("--telemetry-config is required for every live Sandbox")
 
     account = json.loads(subprocess.check_output(["az", "account", "show", "-o", "json"], timeout=20))
     if account["id"] != args.subscription_id or account["tenantId"] != args.tenant_id:
@@ -489,12 +498,13 @@ def main(argv=None, *, performer=perform):
         exclude_broker_credential=True,
         process_timeout=15,
     )
-    group = SandboxGroupClient(
+    group = TelemetrySandboxGroupClient(
         endpoint_for_region(args.region),
         credential,
         subscription_id=args.subscription_id,
         resource_group=args.resource_group,
         sandbox_group=args.sandbox_group,
+        telemetry_config=json.loads(args.telemetry_config.read_text()),
         transport=RequestsTransport(connection_timeout=10, read_timeout=90),
         retry_total=0,
     )

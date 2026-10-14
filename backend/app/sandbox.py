@@ -13,13 +13,13 @@ from azure.containerapps.sandbox import (
     EgressRule,
     EgressRuleAction,
     EgressRuleMatch,
-    SandboxGroupClient,
     endpoint_for_region,
 )
 from azure.core.exceptions import ResourceNotFoundError
 from azure.core.pipeline.transport import RequestsTransport
 from azure.identity import ManagedIdentityCredential
 
+from .sandbox_telemetry import TelemetrySandboxGroupClient
 from .security import redact
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -40,12 +40,13 @@ class SandboxExecutor:
             ):
                 UUID(value)
             self.credential = ManagedIdentityCredential(client_id=settings.managed_identity_client_id)
-            group = SandboxGroupClient(
+            group = TelemetrySandboxGroupClient(
                 endpoint_for_region(settings.region),
                 self.credential,
                 subscription_id=settings.subscription_id,
                 resource_group=settings.resource_group,
                 sandbox_group=settings.sandbox_group,
+                telemetry_config=settings.sandbox_telemetry_config,
                 retry_total=0,
                 transport=RequestsTransport(connection_timeout=10, read_timeout=90),
             )
@@ -113,6 +114,8 @@ class SandboxExecutor:
                     cpu="1000m",
                     memory="2048Mi",
                     ports=[],
+                    entrypoint=["/bin/sh", "-c"],
+                    cmd=["touch /tmp/academo-telemetry.jsonl; exec tail -n +1 -F /tmp/academo-telemetry.jsonl"],
                     labels=record["labels"],
                     auto_suspend_seconds=300,
                     polling_timeout=80,
@@ -124,6 +127,7 @@ class SandboxExecutor:
             record.update(sandbox_id=sandbox.sandbox_id, state="running")
             await self.store.save_ownership(record)
             model = await self.call(sandbox.get)
+            await self.call(self.group.verify_telemetry, sandbox.sandbox_id)
             if model.ports or self.settings.credential_connection_id not in (model.connections or []):
                 raise ValueError("Unexpected Sandbox connection/ports")
             await emit("sandbox.running", sandbox_id=sandbox.sandbox_id)
@@ -139,10 +143,24 @@ class SandboxExecutor:
                 "runner.py": WORKFLOWS / "shared/runner.py",
                 "cli_setup.py": ROOT / "scripts/smoke_workflow_runner.py",
             }
+            if role == "remediation" and self.settings.publication_enabled:
+                files.update(
+                    {
+                        "host.mjs": WORKFLOWS / "copilot-host/host.mjs",
+                        "sdk/package.json": WORKFLOWS / "copilot-host/package.json",
+                        "sdk/package-lock.json": WORKFLOWS / "copilot-host/package-lock.json",
+                    }
+                )
             for remote, local in files.items():
                 await self.call(sandbox.write_file, f"{control}/{remote}", local.read_text())
             # The pinned standalone is installed only in each owned disposable directory.
             await self.checked_exec(sandbox, f"cd {control} && python3 cli_setup.py prepare-cli", 80)
+            if role == "remediation" and self.settings.publication_enabled:
+                await self.checked_exec(
+                    sandbox,
+                    f"cd {control} && npm ci --prefix sdk --ignore-scripts --omit=optional --fetch-timeout=15000 --fetch-retries=0",
+                    80,
+                )
             args = {
                 "run_id": value["run_id"],
                 "commit_sha": value["commit_sha"],
@@ -152,6 +170,17 @@ class SandboxExecutor:
                 "approval": value.get("approval"),
                 "finding": value.get("finding"),
             }
+            await self.call(
+                sandbox.write_file,
+                f"{control}/telemetry_context.json",
+                json.dumps(
+                    {
+                        "run_id": value["run_id"],
+                        "sandbox_id": sandbox.sandbox_id,
+                        "role": role,
+                    }
+                ),
+            )
             for name, body in {
                 "input.json": json.dumps(args),
                 "events.jsonl": "",

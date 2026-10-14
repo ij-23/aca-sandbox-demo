@@ -19,4 +19,9 @@ resource "azapi_resource" "this" {
   # See docs/compatibility.md: terraform validate cannot prove service support.
   schema_validation_enabled = false
   response_export_values    = []
+  # The preview identity PATCH is the sole owner of this property. Stable
+  # creation must not remove the telemetry identity on subsequent full plans.
+  lifecycle {
+    ignore_changes = [identity]
+  }
 }

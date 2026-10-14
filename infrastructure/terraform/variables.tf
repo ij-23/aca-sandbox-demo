@@ -115,3 +115,8 @@ variable "application" {
     error_message = "Application requires real Entra UUIDs, authorized users, vetted repositories, existing connection and HTTPS origin."
   }
 }
+variable "entra_public_origin" {
+  type        = string
+  description = "Set to create demo-owned API/SPA registrations for this exact HTTPS origin; null uses existing registrations."
+  default     = null
+}

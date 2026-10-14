@@ -3,6 +3,12 @@ locals {
   stem   = "${var.name_prefix}-${local.suffix}"
   tags   = merge(var.tags, { project = "aca-sandbox-demo", managed_by = "terraform" })
 }
+module "entra_auth" {
+  count         = var.entra_public_origin == null ? 0 : 1
+  source        = "./modules/entra_auth"
+  name          = local.stem
+  public_origin = var.entra_public_origin
+}
 module "resource_group" {
   source   = "./modules/resource_group"
   name     = "rg-${local.stem}"
@@ -51,6 +57,29 @@ module "sandbox_group" {
   location          = var.region
   tags              = local.tags
 }
+
+module "sandbox_telemetry" {
+  source              = "./modules/sandbox_telemetry"
+  stem                = local.stem
+  resource_group_name = module.resource_group.name
+  workspace_id        = module.monitoring.workspace_id
+  location            = var.region
+  retention_days      = var.log_retention_days
+  tags                = local.tags
+}
+
+# Identity PATCH uses the contract implemented by the official management SDK.
+# Keep stable resource creation separate; do not replace/recreate the group.
+resource "azapi_update_resource" "sandbox_telemetry_identity" {
+  type        = "Microsoft.App/sandboxGroups@2026-02-01-preview"
+  resource_id = module.sandbox_group.id
+  body = {
+    identity = {
+      type                   = "UserAssigned"
+      userAssignedIdentities = { (module.sandbox_telemetry.identity_id) = {} }
+    }
+  }
+}
 module "access" {
   source                  = "./modules/access"
   app_principal_id        = module.identity.principal_id
@@ -88,6 +117,7 @@ module "application" {
     PUBLICATION_OWNER          = var.application.publication_owner
     LIVE_EXECUTION_ENABLED     = tostring(var.application.live_execution_enabled)
     PUBLICATION_ENABLED        = tostring(var.application.publication_enabled)
+    SANDBOX_TELEMETRY_CONFIG   = jsonencode(module.sandbox_telemetry.config)
   }
   depends_on = [module.access]
 }

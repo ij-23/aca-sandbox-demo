@@ -273,14 +273,24 @@ def validate(data):
     checks = []
     counts = {"tests_passed": 0, "tests_failed": 0, "tests_skipped": 0}
     python = str(ROOT / "venv/bin/python")
+    # The built-in image has Python but no ensurepip. Use an official, pinned
+    # universal pip wheel inside the disposable control directory only.
+    pip_wheel = ROOT / "pip.whl"
+    with urllib.request.urlopen(
+        "https://files.pythonhosted.org/packages/62/36/a3aed958d60531cb442b7ab4596cda7b3621cfb916f8ae1d6769795c7dc1/pip-26.2-py3-none-any.whl",
+        timeout=20,
+    ) as response:
+        wheel_bytes = response.read(2000001)
+    if hashlib.sha256(wheel_bytes).hexdigest() != "931c303696af6fa3417112103b1cad26890e5a07eccb5b99783700e33f2b8aad":
+        raise ValueError("Official pip wheel checksum mismatch")
+    pip_wheel.write_bytes(wheel_bytes)
     steps = [
-        ("venv", ["python3", "-m", "venv", str(ROOT / "venv")], 30),
+        ("venv", ["python3", "-m", "venv", "--without-pip", str(ROOT / "venv")], 30),
         (
             "dependencies",
             [
                 python,
-                "-m",
-                "pip",
+                str(pip_wheel) + "/pip",
                 "install",
                 "--disable-pip-version-check",
                 "--require-hashes",

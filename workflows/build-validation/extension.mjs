@@ -1,6 +1,6 @@
 import { defineWorkflow, joinSession } from '@github/copilot-sdk/extension';
 import { runtime, limits } from '../../runtime.mjs';
-const workflow = defineWorkflow({meta: {name: 'build-validation', description: 'Bounded Python FastAPI build, pytest and conditional localhost health', limits}, run: async ctx => {
+const workflow = defineWorkflow({meta: {name: 'build-validation', phases: [], argsSchema: {type:"object"}, description: 'Bounded Python FastAPI build, pytest and conditional localhost health', limits}, run: async ctx => {
   const r = runtime(ctx); r.emit('workflow.started', null, {transport: 'sdk_file_polling'});
   await r.step('checkout', () => r.command('checkout'));
   const report = await r.step('validate', () => r.command('validate'));

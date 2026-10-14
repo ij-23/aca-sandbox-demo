@@ -5,7 +5,8 @@ import json
 from collections import OrderedDict, deque
 from dataclasses import dataclass
 
-from azure.core.exceptions import ResourceExistsError, ResourceNotFoundError
+from azure.core import MatchConditions
+from azure.core.exceptions import ResourceExistsError, ResourceModifiedError, ResourceNotFoundError
 from azure.identity.aio import ManagedIdentityCredential
 from azure.storage.blob.aio import BlobServiceClient
 
@@ -50,8 +51,10 @@ class BlobStore:
     async def append_event(self, identifier: str, value: dict):
         blob = self.service.get_blob_client("events", run_id(identifier) + "/events.jsonl")
         try:
-            await blob.create_append_blob()
-        except ResourceExistsError:
+            # Default create_append_blob overwrites existing contents. Conditional
+            # creation is mandatory, including after process restart.
+            await blob.create_append_blob(match_condition=MatchConditions.IfMissing)
+        except (ResourceExistsError, ResourceModifiedError):
             pass
         # No SDK retries: ambiguous append must not silently duplicate an event.
         await blob.append_block((json.dumps(value) + "\n").encode(), retry_total=0)
@@ -156,7 +159,7 @@ class Events:
                 values = list(cached.entries)
             return [e for e in values if e["event_id"] > after]
 
-    async def emit(self, identifier: str, role: str, kind: str, *, sandbox_id=None, step_id=None, **payload):
+    async def emit(self, identifier: str, role: str, event_type: str, *, sandbox_id=None, step_id=None, **payload):
         from .contracts import Event, now
         from .security import redact
 
@@ -173,7 +176,7 @@ class Events:
                 timestamp=now(),
                 sandbox_role=role,
                 sandbox_id=sandbox_id,
-                type=kind,
+                type=event_type,
                 step_id=step_id,
                 payload=redact(payload),
             ).model_dump()

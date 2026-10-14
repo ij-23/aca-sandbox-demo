@@ -1,16 +1,18 @@
 # Foundation deployment and Milestone 0
 
-This guide covers the deployed Terraform foundation, smoke harness and local application host. **The approved foundation is deployed: 23 created, 0 changed, 0 destroyed.** All resources were read back successfully. Azure Policy imposed the Storage networking deviation below. Separately approved disposable Sandboxes verified lifecycle/exec/upload/cleanup and automatic Copilot authentication with the existing provider connection; they were deleted. The approved M0-CLI97 genuine workflow passed, including AI, branch, live polling and deletion. No Container App has been deployed. The next prepared [M0-C-FAIL test](./pending-approvals.md#m0-c-fail--prepared-not-executed) requires separate approval.
+> **Current execution authorization (2026-10-14):** Project-scoped Sandbox tests/cleanup, Terraform apply, Azure deployment and GitHub publishing are authorized autonomously under [AGENTS.md](../AGENTS.md#project-execution-authorization--2026-10-14). Recurring approval checkpoints below are superseded. Technical validation, product Fix confirmation, protection of unrelated resources and the prohibition on destructive operations remain.
+
+This guide covers the Terraform foundation and deployed Azure React/FastAPI host. The initial 23-resource foundation was extended with DCE/DCR/ingestion identity, Entra registrations and the Container App. Browser Entra sign-in, managed-identity Blob readiness and real run/event persistence pass. Genuine CLI1.0.97 and M0-C-FAIL tests passed. Full A/B/C validation is ongoing; same-PAT private repository creation succeeds but push currently returns403. See the current compatibility ledger before enabling publication.
 
 The [README](../README.md) is the canonical customer guide. See the [compatibility ledger](./compatibility.md) for verified schemas and current blockers, and [progress](./progress.md) for test results.
 
 ## What this slice creates
 
-The [Terraform root](../infrastructure/terraform/) creates a dedicated resource group, application ACR, host UAMI, Consumption-profile Container Apps Environment, workspace-based Application Insights, Log Analytics workspace, StorageV2 account, four private artifact containers, lifecycle retention, diagnostics, Sandbox Group, and scoped RBAC. It does not deploy a Container App, publish an image, create an Entra application, establish GitHub OIDC trust, or create a running sandbox.
+The [Terraform root](../infrastructure/terraform/) creates a dedicated resource group, application ACR, host UAMI, Consumption-profile Container Apps Environment, workspace-based Application Insights, Log Analytics workspace, StorageV2 account, four private artifact containers, lifecycle retention, diagnostics, Sandbox Group, and scoped RBAC. With application and entra_public_origin inputs it also provisions the application and secretless SPA/API registrations. Sandbox telemetry adds DCE/DCR/custom table and an ingestion-only UAMI. Image build/push is a separate step; temporary Sandboxes remain runtime-managed. GitHub OIDC trust is not configured yet.
 
 Terraform modules are grouped by resource group, registry, identity, monitoring, storage, sandbox group, and access. AzureRM 4.81.0 and AzAPI 2.13.0 are locked. Local state is the current default; no remote backend is provisioned. Keep state and saved plans private, backed up and excluded from Git. Resolve a durable locked backend before implementing GitHub Actions deployment.
 
-Storage public blob access and shared-key authentication are disabled. The approved configuration requested a public HTTPS endpoint with Entra authorization. The user resolved the earlier inherited-policy networking issue. Read-only verification on 2026-10-14 shows publicNetworkAccess Enabled and a reachable Blob HTTPS endpoint. Anonymous access is denied, and the operator lacks Blob data permissions. No networking fix was attempted. App UAMI grants were read back; runtime Blob access awaits the deployed application. Blob roles are assigned at each container. Log Analytics/Storage use ARM resources to avoid fetching shared keys into Terraform state. The environment sends logs through Azure Monitor diagnostics, avoiding a workspace-key connection. Application Insights disables local authentication; its exported connection string/instrumentation identifier does not grant ingestion access. The future host needs its UAMI and Monitoring Metrics Publisher role to send telemetry.
+Storage public blob access and shared-key authentication are disabled. The approved configuration requested a public HTTPS endpoint with Entra authorization. The user resolved the earlier inherited-policy networking issue. Read-only verification on 2026-10-14 shows publicNetworkAccess Enabled and a reachable Blob HTTPS endpoint. Anonymous access is denied, and the operator lacks Blob data permissions. No networking fix was attempted. App UAMI grants were read back; deployed-host readiness and real event writes verified UAMI Blob access. Blob roles are assigned at each container. Log Analytics/Storage use ARM resources to avoid fetching shared keys into Terraform state. The environment sends logs through Azure Monitor diagnostics, avoiding a workspace-key connection. Application Insights disables local authentication; its exported connection string/instrumentation identifier does not grant ingestion access. The future host needs its UAMI and Monitoring Metrics Publisher role to send telemetry.
 
 ## Required values and permissions
 
@@ -64,7 +66,7 @@ docker build --platform linux/amd64 -t aca-sandbox-demo:local \
 
 The Dockerfile defaults to public PyPI/npm registries; both overrides are non-secret URLs. Never use authenticated URLs or credentials in build arguments. The SHA256-locked Python requirements and npm integrity hashes still apply. The build context excludes local environments, dependencies, Terraform artifacts and credentials. The final image contains only the Python host and built React assets, runs as UID 10001, and keeps live execution disabled. No Copilot binary or custom Sandbox image is built.
 
-The [CI workflow](../.github/workflows/ci.yml) runs these platform checks and builds an image without Azure access or publishing. The [configuration example](../.env.example) lists required non-secret application settings. The current host implements MSAL SPA PKCE plus Entra v2 delegated access-token validation in FastAPI; it requires customer SPA/API registrations, `access_as_user` consent, API v2 tokens and authorized user object IDs. Those Azure login checks have not run. See [architecture](./architecture.md) for the network and deployment-state decisions still needed.
+The [CI workflow](../.github/workflows/ci.yml) runs these platform checks and builds an image without Azure access or publishing. The [configuration example](../.env.example) lists required non-secret application settings. The current host implements MSAL SPA PKCE plus Entra v2 delegated access-token validation in FastAPI; it requires customer SPA/API registrations, `access_as_user` consent, API v2 tokens and authorized user object IDs. Browser Entra login, authorized run creation and anonymous401 checks passed in the deployed instance. See [architecture](./architecture.md) for the network and deployment-state decisions still needed.
 
 ## Prepare the real deployment plan
 
@@ -89,9 +91,9 @@ terraform -chdir=infrastructure/terraform show -no-color foundation.tfplan
 
 **Current result (2026-10-12):** after explicit approval, the exact reviewed [academo foundation plan](../infrastructure/terraform/academo-swedencentral.tfplan) was applied using the existing Azure CLI authentication for Sweden Central, prefix `academo`, and signed-in User as initial operator: **23 added, 0 changed, 0 destroyed**. The private [deployment results](../.local/azure-discovery/deployment-results.md) record exact targets, verification, plan hash and the Storage policy deviation. This plan is already consumed; do not reapply it. The preparation/apply sequence here is for new deployments. These local artifacts are not distributed with the repository; new customers must supply their own values. Do not plan/apply the all-zero example subscription.
 
-5. Present that exact plan, subscription, region, names, role assignments, and expected costs for approval. Do not run apply until approved. Re-plan and obtain renewed approval if the configuration, inputs, credentials/scope, or plan changes materially.
+5. Inspect that exact saved plan, subscription, region, names, role assignments, and expected costs. Under standing project authorization, apply it only when it contains no destructive or unrelated changes. Re-plan and inspect again if inputs/configuration change.
 
-Only after that approval:
+After plan inspection:
 
 ```bash
 terraform -chdir=infrastructure/terraform apply foundation.tfplan
@@ -104,7 +106,7 @@ The official stable ARM resource is `Microsoft.App/sandboxGroups@2026-07-01`, wi
 
 Only this resource sets `schema_validation_enabled = false`, following the official module's need to handle the absent schema. Its body is constrained in source to the published stable contract; the other AzAPI resources retain schema validation. The approved deployment now proves Azure accepted this minimal stable body in the selected subscription: group read-back is `Succeeded`, authenticated data-plane listing works and built-in `copilot` is Ready. This does not validate rich-preview fields or runtime execution. New customers must still verify target API registration.
 
-The foundation does **not** invent `maxSandboxCount`, `defaultTimeoutSeconds`, or egress properties in that stable contract. The official rich-preview example uses `2026-02-01-preview`. Both API versions are advertised in the selected subscription and succeeded for read-only group listing in Sweden Central. Those reads do not prove limit-field persistence or enforcement on create. Microsoft documents egress at sandbox creation and runtime; an omitted policy permits unrestricted outbound access. No persistent group-wide Terraform policy contract was verified. Group-enforced limits and persistent egress remain gates before repository evaluation. The proposed separately approved smoke runs trusted nonce-only code, not a submitted repository. Do not start the application or allow repository evaluation before these controls and the real smoke gate are resolved.
+The foundation does **not** invent `maxSandboxCount`, `defaultTimeoutSeconds`, or egress properties in that stable contract. The official rich-preview example uses `2026-02-01-preview`. Both API versions are advertised in the selected subscription and succeeded for read-only group listing in Sweden Central. Those reads do not prove limit-field persistence or enforcement on create. Microsoft documents egress at sandbox creation and runtime; an omitted policy permits unrestricted outbound access. No persistent group-wide Terraform policy contract was verified. The application instead supplies explicit default-Deny/Full inspection per Sandbox, enforces one active run and bounded deadlines, and restricts inputs to the reviewed fixture. Genuine A/B clone, Copilot and dependency traffic succeeded with this policy. This is application-enforced isolation, not a claim of a persistent group-wide policy or hard service lifetime limit.
 
 ## Manual Copilot credential checkpoint
 
@@ -112,7 +114,7 @@ Follow the exact [README portal procedure](../README.md#mandatory-configure-gith
 
 No provider-credential management API is called by Terraform or the smoke harness. The manual configuration itself occurs only after the user approves cloud setup. A portal badge is not Milestone 0 proof.
 
-## Prepare and approve the smoke operation
+## Prepare and execute the bounded smoke operation
 
 First inspect the local plan-only output (zero Azure calls):
 
@@ -125,16 +127,16 @@ First inspect the local plan-only output (zero Azure calls):
   --expected-cli-version 1.0.97
 ```
 
-Then request separate approval to create, run and delete **one** temporary Copilot sandbox in that group. Its requested size is 1 vCPU / 2 GiB; the work deadline is 400 seconds, the workflow process timeout is 210 seconds with 5-second kill grace, and cleanup gets an independent 100-second deadline. A compatible built-in CLI can be used directly. The opt-in `--pinned-cli` path downloads checksum-verified official 1.0.97 into the disposable control directory only; include that action in the approval. The workflow allows one concurrent agent, up to two total attempts, and a soft limit of two AI credits. Usage limits are not a hard billing cap.
+Under project authorization, create, run and clean up one bounded temporary Copilot sandbox in that group per test attempt. Its requested size is 1 vCPU / 2 GiB; the work deadline is 400 seconds, the workflow process timeout is 210 seconds with 5-second kill grace, and cleanup gets an independent 100-second deadline. A compatible built-in CLI can be used directly. The opt-in `--pinned-cli` path downloads checksum-verified official 1.0.97 into the disposable control directory only; review the checksum and target before execution. The workflow allows one concurrent agent, up to two total attempts, and a soft limit of two AI credits. Usage limits are not a hard billing cap.
 
-After approval, add:
+For an authorized execution, add:
 
 ```text
 --execute --confirm-group /subscriptions/<subscription-uuid>/resourceGroups/<rg>/providers/Microsoft.App/sandboxGroups/<group>
 --output .local/smoke-<unique-attempt>.json
 ```
 
-The harness uses DefaultAzureCredential restricted to the existing Azure CLI identity, after checking that the cached active subscription/tenant match the approved target. It refuses a mismatched context. Temporarily select the approved subscription only when needed and restore the previous context in a `finally`/EXIT handler. SDK creation attaches `connections=[existing_connection_id]`; disk selection alone does not inject the credential. The future deployed UAMI still needs its own integration test.
+The harness uses DefaultAzureCredential restricted to the existing Azure CLI identity, after checking that the cached active subscription/tenant match the approved target. It refuses a mismatched context. Temporarily select the approved subscription only when needed and restore the previous context in a `finally`/EXIT handler. SDK creation attaches `connections=[existing_connection_id]`; disk selection alone does not inject the credential. The deployed UAMI has created/cleaned separate A/B Sandboxes and written private Blob events.
 
 The smoke harness:
 
@@ -147,7 +149,7 @@ The smoke harness:
 
 The SDK docs disagree on some filtered-list argument names; the harness avoids those filters and compares exact labels after an unfiltered list. Installed 0.1.0b4 signatures were inspected. A lost create response is reported as ambiguous even after matched orphans are removed; an empty list cannot establish that a delayed create will never appear.
 
-Hard termination (`SIGKILL`), machine loss, and service delays can still leave an orphan. The private evidence records group, nonce and labels. [cleanup_orphans.py](../scripts/cleanup_orphans.py) is inert by default: supply `--evidence <record.json>` to inspect its local scope, then `--inspect --tenant-id <id> --region <region>` for a read-only inventory. After reviewing exact ownership and obtaining cleanup approval, add `--delete-id <exact-id> --confirm-group <exact-arm-id>` to delete that ID and verify GET 404. The script rechecks live labels and refuses pre-existing IDs from the evidence inventory. It handles smoke records only; application-ledger orphan recovery remains gated with the live adapter. Never delete the group or unrelated Sandboxes. This slice does not claim a service-enforced lifetime limit.
+Hard termination (`SIGKILL`), machine loss, and service delays can still leave an orphan. The private evidence records group, nonce and labels. [cleanup_orphans.py](../scripts/cleanup_orphans.py) is inert by default: supply `--evidence <record.json>` to inspect its local scope, then `--inspect --tenant-id <id> --region <region>` for a read-only inventory. After reviewing exact ownership under the standing owned-cleanup authorization, add `--delete-id <exact-id> --confirm-group <exact-arm-id>` to delete that ID and verify GET 404. The script rechecks live labels and refuses pre-existing IDs from the evidence inventory. It handles smoke records only; application-ledger recovery runs at host startup and only deletes exact matching ownership labels. Never delete the group or unrelated Sandboxes. This slice does not claim a service-enforced lifetime limit.
 
 ## Gate and next phase
 
@@ -166,9 +168,7 @@ publication owner and exact HTTPS origin. Live execution/publication default fal
 Do not enable publication before real extension credential and create/push validation.
 
 The prepared [deployment workflow](../.github/workflows/deploy.yml) uses OIDC and
-requires customer-owned `azure-plan` and `azure-apply` GitHub environments with
-required reviewers. The first authorizes the disclosed image push/plan; the second
-reviews the saved plan. It applies only that artifact after checking its SHA256,
+uses customer-owned `azure-plan` and `azure-apply` GitHub environments. Required reviewers are optional customer policy. The first builds and saves the plan; the second applies the inspected artifact. It applies only that artifact after checking its SHA256,
 never replans during apply and never calls `az containerapp update`.
 The plan artifact contains infrastructure configuration/state-derived values;
 restrict repository/environment access and retain it for one day. Never add the
@@ -188,5 +188,41 @@ Environment variables are `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`,
 Drain all active runs and confirm owned-sandbox cleanup before a revision update.
 Single revision/min-max 1 does not prevent old/new revision overlap during rollout;
 in-process work is not durable. Do not deploy over an active demonstration.
-Actual Azure HTTPS login, UAMI Blob/Sandbox access, A/B/C integration, replay and
-clean-customer installation still require the approved live acceptance run.
+Azure HTTPS login and UAMI Blob/Sandbox access pass. Full A/B/C publication, durable replay and clean-customer installation remain acceptance gates.
+
+## Manual application deployment used in this project
+
+Keep foundation inputs in private terraform.tfvars. Never remove existing Entra/application inputs on a later plan: that would propose destruction. Reject destructive plans. With the foundation deployed, discover the prospective application origin using the existing environment:
+
+```sh
+ENVIRONMENT_ID=$(terraform -chdir=infrastructure/terraform output -raw container_app_environment_id)
+ENVIRONMENT_NAME=${ENVIRONMENT_ID##*/}
+APP_NAME=ca-${ENVIRONMENT_NAME#cae-}
+APP_DOMAIN=$(az resource show --ids "$ENVIRONMENT_ID" --query properties.defaultDomain -o tsv)
+APP_ORIGIN=https://${APP_NAME}.${APP_DOMAIN}
+```
+
+Set `entra_public_origin` to that HTTPS origin in private inputs; keep application null for this step. Plan, inspect and apply the exact saved plan to create secretless registrations. Read `terraform output -json entra_client_ids`. Copy [application.auto.tfvars.example](../infrastructure/terraform/application.auto.tfvars.example) to private `deployment.auto.tfvars.json` only after converting the example HCL to JSON, or use `deployment.auto.tfvars` for its HCL form. Supply real registration IDs, operator object ID, reviewed source URL, existing connection ID and matching origin. Do not put a token in these files.
+
+Build/push under the existing authorized Azure CLI identity (manual bootstrap alternative to OIDC):
+
+```sh
+ACR_SERVER=$(terraform -chdir=infrastructure/terraform output -raw acr_login_server)
+ACR_NAME=${ACR_SERVER%%.*}
+IMAGE_TAG=$(git rev-parse --short=12 HEAD)
+az acr login --name "$ACR_NAME"
+docker build --platform linux/amd64 -t "$ACR_SERVER/academo-app:$IMAGE_TAG" .
+docker push "$ACR_SERVER/academo-app:$IMAGE_TAG"
+az acr repository show --name "$ACR_NAME" --image "academo-app:$IMAGE_TAG" --query digest -o tsv
+```
+
+Set application.image to the returned `registry/academo-app@sha256:...` digest. Keep publication disabled until a same-PAT harmless push is live-verified. Plan, inspect the exact changes, apply that saved plan, then check readiness and anonymous rejection at the resulting application_url. Sign in through the browser to test authorized operations. The current instance uses one replica, trusted-fixture A/B and no local host.
+
+For Sandbox telemetry, export the non-secret configuration for command-line smoke tests:
+
+```sh
+mkdir -p .local
+terraform -chdir=infrastructure/terraform output -json sandbox_telemetry_config > .local/sandbox-telemetry.json
+```
+
+All smoke commands require `--telemetry-config .local/sandbox-telemetry.json`. The application receives the same output through Terraform. Query `AcademoSandboxLogs_CL` by exact run_id/sandbox_id; API creation success alone is not an ingestion check.

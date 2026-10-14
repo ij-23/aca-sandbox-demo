@@ -51,7 +51,7 @@ def test_concurrent_roles_and_single_run_admission():
             if len(self.roles) == 2:
                 self.both.set()
             await asyncio.wait_for(self.both.wait(), timeout=1)
-            await emit("step.completed", step_id="test-double", status="passed")
+            await emit("step.completed", step_id="test-double", status="passed", kind="deterministic")
             common = dict(commit_sha=value["commit_sha"], status="passed", checks=[], limitations=["UNIT TEST DOUBLE"])
             if role == "security":
                 return dict(**common, findings=[])
@@ -77,6 +77,9 @@ def test_concurrent_roles_and_single_run_admission():
         assert result["status"] == "completed"
         assert set(result["reports"]) == {"security", "build"}
         assert executor.cleaned == [value["run_id"]]
+        steps = [e for e in store.logs[value["run_id"]] if e["type"] == "step.completed"]
+        assert len(steps) == 2
+        assert all(e["payload"]["kind"] == "deterministic" for e in steps)
 
     asyncio.run(scenario())
 

@@ -10,6 +10,7 @@ resource "azurerm_container_app" "this" {
   resource_group_name          = var.resource_group_name
   container_app_environment_id = var.environment_id
   revision_mode                = "Single"
+  workload_profile_name        = "Consumption"
   tags                         = var.tags
   identity {
     type         = "UserAssigned"

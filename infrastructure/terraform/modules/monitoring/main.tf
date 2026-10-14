@@ -47,10 +47,10 @@ resource "azurerm_container_app_environment" "this" {
   tags = var.tags
 }
 resource "azurerm_monitor_diagnostic_setting" "environment" {
-  name                           = "environment-logs"
-  target_resource_id             = azurerm_container_app_environment.this.id
-  log_analytics_workspace_id     = azapi_resource.workspace.id
-  log_analytics_destination_type = "Dedicated"
+  name                       = "environment-logs"
+  target_resource_id         = azurerm_container_app_environment.this.id
+  log_analytics_workspace_id = azapi_resource.workspace.id
+  # Service readback uses the default destination; do not perpetually reapply Dedicated.
   enabled_log { category = "ContainerAppConsoleLogs" }
   enabled_log { category = "ContainerAppSystemLogs" }
 }

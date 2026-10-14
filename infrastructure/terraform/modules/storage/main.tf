@@ -8,6 +8,10 @@ terraform {
 locals { containers = toset(["reports", "events", "diffs", "replay"]) }
 # ARM never invokes listKeys; private containers are also ARM-managed.
 resource "azapi_resource" "account" {
+  # Preserve the user's Azure Policy/networking resolution; not managed by this demo.
+  lifecycle {
+    ignore_changes = [tags["SecurityControl"]]
+  }
   type                      = "Microsoft.Storage/storageAccounts@2025-06-01"
   name                      = var.name
   parent_id                 = var.resource_group_id
@@ -64,10 +68,10 @@ resource "azapi_resource" "retention" {
   }
 }
 resource "azurerm_monitor_diagnostic_setting" "blob" {
-  name                           = "blob-audit"
-  target_resource_id             = "${azapi_resource.account.id}/blobServices/default"
-  log_analytics_workspace_id     = var.workspace_id
-  log_analytics_destination_type = "Dedicated"
+  name                       = "blob-audit"
+  target_resource_id         = "${azapi_resource.account.id}/blobServices/default"
+  log_analytics_workspace_id = var.workspace_id
+  # Preserve the service's default table routing, verified by ARM readback.
   enabled_log { category = "StorageRead" }
   enabled_log { category = "StorageWrite" }
   enabled_log { category = "StorageDelete" }
