@@ -6,7 +6,7 @@
 
 [MIT license](./LICENSE) · [Contributing](./CONTRIBUTING.md)
 
-> **Live A/B/C publishing verified.** The Azure host, Entra sign-in, concurrent genuine Copilot workflows, source-verified finding, successful C fix/validation/private publication, telemetry and95-event private persistence/replay are verified. The original fixture is unchanged and all disposable Sandboxes are deleted. OIDC image release/deployment passed; remaining operational/customer-install checks are tracked in [progress](./docs/progress.md). The project is not yet declared fully complete.
+> **Live A/B/C publishing verified.** The Azure host, Entra sign-in, concurrent genuine Copilot workflows, source-verified finding, successful C fix/validation/private publication, telemetry and 95-event private persistence/replay are verified. The original fixture is unchanged and all disposable Sandboxes are deleted. OIDC image release/deployment and runtime cancellation/recovery passed; remaining checks are tracked in [acceptance](./docs/acceptance.md). The project is not yet declared fully complete.
 
 The project source is [ij-23/aca-sandbox-demo](https://github.com/ij-23/aca-sandbox-demo). Follow the [manual application deployment](./docs/deployment.md#manual-application-deployment-used-in-this-project) with the [application input example](./infrastructure/terraform/application.auto.tfvars.example).
 
@@ -34,6 +34,8 @@ The approved M0-CLI97 test passed on 2026-10-14, including real Copilot AI, bran
 
 ## Intended live experience
 
+**Current repository support:** the deployed demo accepts only the configured trusted fixture, `https://github.com/ij-23/academo-fastapi-fixture`. See the [public-repository capability plan](./docs/public-repository-plan.md) for the proposed expansion. It separates general source analysis from verified language-specific builds/remediation and requires credential isolation before arbitrary repository code execution. This capability is not yet enabled.
+
 An authenticated user enters a **public GitHub repository URL** into a React dashboard. A Python/FastAPI orchestrator (hosted together with React in one Azure Container App) creates **two isolated ACA Sandboxes simultaneously** from the built-in GitHub Copilot image. Both execute **genuine Copilot Dynamic Workflows**:
 
 1. **Security Review (A):** static/source review, optional SAST and secrets scan, evidence-based findings and risk assessment.
@@ -52,8 +54,8 @@ Authenticated user (Microsoft Entra ID) -> HTTPS
                                 |-- Sandbox B: Copilot Dynamic Workflow / build, test, runtime
                                 `-- Sandbox C: on Fix approval, Copilot Dynamic Workflow / fix, validate, create/push {repo}-fixed
    ACR -> serves host application's Docker image only
-   GitHub Actions OIDC -> build/deploy app
-   Terraform -> static Azure infrastructure (using `terraform-builder` agent skill)
+   GitHub Actions OIDC -> build/push app image and release digest
+   Local-state Terraform -> static Azure infrastructure and app image deployment
 ```
 
 The Sandbox Group is separate from the **Container Apps Managed Environment** hosting our app. **No custom sandbox disk/image or ACR copy of Copilot is required.**
@@ -73,7 +75,7 @@ The Sandbox Group is separate from the **Container Apps Managed Environment** ho
 | RBAC assignments | `AcrPull`, `Container Apps SandboxGroup Data Owner`, Blob data access |
 | App Insights (recommended) | App traces, metrics and failures |
 | Microsoft Entra app/user auth settings | Restrict web UI/API to approved users |
-| OIDC/Federated credentials (where supported) | Secretless GitHub Actions deployment |
+| OIDC/Federated credentials (where supported) | Secretless GitHub Actions image publication; local-state Terraform deploys the digest |
 
 The three individual **Sandboxes are dynamic**, created/deleted at runtime by FastAPI—not tracked by Terraform.
 
@@ -89,7 +91,7 @@ The three individual **Sandboxes are dynamic**, created/deleted at runtime by Fa
 
 ## Deployment: bootstrap and application phases
 
-> Exact working Terraform, GitHub Actions and CLI commands must be produced and verified during implementation; **do not guess resource arguments or blindly run the example concepts below**.
+Use the verified commands in the [deployment guide](./docs/deployment.md). These steps summarize the bootstrap sequence; a separate clean-subscription installation remains an [open acceptance check](./docs/acceptance.md#remaining-work-and-external-dependencies).
 
 1. **Configure inputs:** subscription, tenant, Azure region, Resource Group prefix, ACR and Sandbox Group names, authorized Entra users/groups, repository/branch and retention. Never add the Copilot PAT to Terraform inputs.
 2. **Bootstrap static infrastructure with Terraform:** using `terraform-builder`, create RG, ACR, workspace, identities, Blob, Sandbox Group and required RBAC. Validate plan; the final app image does not yet exist.
@@ -136,23 +138,52 @@ Official GitHub references: [Copilot CLI authentication](https://docs.github.com
 - Publicly hosted does **not** mean anonymously usable. Entra auth, quotas/timeouts, URL allowlisting and rate limiting protect against unauthorized or costly runs. Store sanitized results/events in private Blob containers; no secrets in browser, SSE, telemetry or replays.
 - Orchestration is single-process/single-replica MVP. Blob gives event/report persistence, **not automatic recovery of in-flight work after an app restart**. Proper multi-replica customer production would need durable job/worker coordination and further hardening.
 
-## Repository structure and remaining work
+## Repository structure
 
 ```text
-frontend/                  React + TypeScript + Vite
-backend/                   FastAPI, ACA SDK adapter, orchestrator, SSE, Blob
-workflows/                 three real Copilot Dynamic Workflows: security-review, build-validation, remediation
-infrastructure/terraform/   customer-parameterized Terraform
-.github/workflows/         CI and Azure OIDC deploy workflows
-scripts/                   environment verification, smoke test, orphan cleanup
-fixtures/                  clearly marked real prerecorded replay events
-docs/                      architecture, compatibility, deployment, security, demo script
+backend/app/               FastAPI, auth, orchestrator, Sandbox SDK, SSE and Blob
+backend/tests/             platform unit tests; no fixture execution
+frontend/                  React + TypeScript + Vite dashboard and tests
+workflows/                 security-review, build-validation and remediation extensions
+  shared/                  trusted workflow operations, runner and event instrumentation
+  copilot-host/            official SDK host, locked dependencies and credential probes
+  smoke/                   minimal genuine Dynamic Workflow compatibility check
+  schemas/                 generated report contracts, checked against backend models
+scripts/                   operator probes, smoke/cleanup tools and platform checks
+  tests/                   tests for operator tools and trusted workflow operations
+demo-repo/                 vetted vulnerable FastAPI source; execute only in Sandboxes
+fixtures/                  genuine prerecorded events and provenance
+infrastructure/terraform/  Terraform root, modules, tests and customer input examples
+.github/workflows/         platform CI and OIDC image release (no Terraform apply)
+.vscode/                   build, test and local preview tasks
+docs/                      architecture, deployment, security, compatibility and acceptance
+requirements*.in           platform runtime/development dependency inputs
+requirements*.txt          hash-locked runtime/development dependencies
+pyproject.toml             platform-only pytest discovery and Ruff configuration
 Dockerfile                 multi-stage application container
-AGENTS.md                  coding-agent requirements
-README.md                  deployment and customer onboarding
+.env.example               non-secret application configuration example
+AGENTS.md                  implementation requirements and project authorization
+README.md                  customer onboarding and deployment overview
+CONTRIBUTING.md             contributor checks and repository maintenance
+LICENSE                    project MIT license
 ```
 
 The host, dashboard, smoke workflow, report schemas, CI, foundation and [trusted source fixture](./demo-repo/README.md) exist. The [vetted fixture](https://github.com/ij-23/academo-fastapi-fixture) is published; its tests run only inside disposable Sandboxes. All three workflow extensions and the SDK adapter have passed real Azure execution. Publication defaults off for new installations until their credential gates pass; it is enabled in this verified demo. A genuine full-run replay is available. The current [configuration example](./.env.example) contains non-secret names only; the host never reads a Copilot PAT.
+
+### Documentation map
+
+| Document | Purpose |
+| --- | --- |
+| [Deployment](./docs/deployment.md) | Bootstrap, manual deployment, OIDC releases, operator checks and costs |
+| [Architecture](./docs/architecture.md) | Implemented components, execution boundaries and state ownership |
+| [Security](./docs/security.md) | Identity, shared-PAT risks and trusted-fixture restrictions |
+| [Compatibility](./docs/compatibility.md) | Verified SDK/CLI/API behavior and dated technical evidence |
+| [Acceptance](./docs/acceptance.md) | Current verification status and remaining work |
+| [Progress](./docs/progress.md) | Dated implementation and maintenance history |
+| [Demo script](./docs/demo-script.md) | Fifteen-minute presenter walkthrough |
+| [Replay provenance](./fixtures/README.md) | Origin and checksum of the genuine recording |
+
+Use [locked development dependencies](./requirements-dev.txt) for platform tests and operator tools. Local caches, installed dependencies and generated dashboard assets are ignored. Private deployment evidence, Terraform state, backups, inputs and saved plans must be retained separately from disposable caches; see [repository maintenance](./CONTRIBUTING.md#repository-maintenance).
 
 ## API / live UX
 

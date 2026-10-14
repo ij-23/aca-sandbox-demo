@@ -20,3 +20,22 @@ Updated 2026-10-14. **Not all acceptance criteria are complete.** Unit tests are
 | Customer/demo readiness | Canonical docs, genuine replay/provenance and technical walkthrough | Separate clean install and final15-minute rehearsal pending |
 
 The original source repository and protected Sandbox remain unchanged. Existing fixed destination must never be overwritten. No credential value is captured in these records.
+
+## Remaining work and external dependencies
+
+This is the current checklist, consolidated from the retired implementation plan and
+approval notes. Historical results remain in [progress](./progress.md) and
+[compatibility](./compatibility.md); requirements remain in [AGENTS.md](../AGENTS.md).
+
+- [ ] Exercise authenticated SSE with an explicit Last-Event-ID cursor and browser cancellation on the deployed revision; runtime cancellation/recovery has already passed.
+- [ ] Complete the final 1080p dashboard review, screenshots and timed 15-minute rehearsal with the [demo script](./demo-script.md) and genuine replay fallback. These browser checks need an available dashboard window.
+- [ ] Verify customer bootstrap and deployment in a separate customer-provided empty subscription/tenant. Do not recreate the existing deployment as a substitute.
+
+PAT permissions and Terraform state decisions are resolved: same-PAT private publication
+passed, and the existing LOCAL state/lineage must be retained. The OIDC workflow publishes
+an image and digest; the state-holding machine applies the inspected Terraform plan.
+Fully automated Actions apply would require a separately configured trusted persistent runner.
+
+Project-scoped operations use the [standing authorization](../AGENTS.md#project-execution-authorization--2026-10-14).
+The product's single Fix confirmation remains required. Credential rotation, repository
+deletion/overwrite, static infrastructure destruction and unrelated changes are outside that scope.

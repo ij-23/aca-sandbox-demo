@@ -8,7 +8,7 @@ The [README](../README.md) is the canonical customer guide. See the [compatibili
 
 ## What this slice creates
 
-The [Terraform root](../infrastructure/terraform/) creates a dedicated resource group, application ACR, host UAMI, Consumption-profile Container Apps Environment, workspace-based Application Insights, Log Analytics workspace, StorageV2 account, four private artifact containers, lifecycle retention, diagnostics, Sandbox Group, and scoped RBAC. With application and entra_public_origin inputs it also provisions the application and secretless SPA/API registrations. Sandbox telemetry adds DCE/DCR/custom table and an ingestion-only UAMI. Image build/push is a separate step; temporary Sandboxes remain runtime-managed. A dedicated build-only GitHub OIDC identity is Terraform-managed; the image-release workflow is being live-validated.
+The [Terraform root](../infrastructure/terraform/) creates a dedicated resource group, application ACR, host UAMI, Consumption-profile Container Apps Environment, workspace-based Application Insights, Log Analytics workspace, StorageV2 account, four private artifact containers, lifecycle retention, diagnostics, Sandbox Group, and scoped RBAC. With application and entra_public_origin inputs it also provisions the application and secretless SPA/API registrations. Sandbox telemetry adds DCE/DCR/custom table and an ingestion-only UAMI. Image build/push is a separate step; temporary Sandboxes remain runtime-managed. A dedicated build-only GitHub OIDC identity is Terraform-managed; the image-release workflow and subsequent local-state deployment passed live validation.
 
 Terraform modules are grouped by resource group, registry, identity, monitoring, storage, sandbox group, and access. AzureRM 4.81.0 and AzAPI 2.13.0 are locked. Local state is the current default; no remote backend is provisioned. Keep state and saved plans private, backed up and excluded from Git. Use OIDC image releases and local Terraform deployment; never migrate this instance to remote state.
 
@@ -227,4 +227,29 @@ Measured genuine A/B runs finished in26–27 seconds; these are observations, no
 
 [probe_app_recovery.py](../scripts/probe_app_recovery.py) is a trusted operator test for the deployed Container App environment. Run during a quiet demo window, with no pending run/cleanup. Transfer the reviewed script to a temporary host path using the authorized Container App console, then invoke `python /tmp/academo_probe_recovery.py cancel` or `python /tmp/academo_probe_recovery.py interrupt`. Each invocation creates exactly two real built-in Copilot A/B Sandboxes; no C or GitHub publication occurs. The supervising process always reconciles its exact persisted run, including on child timeout, and prints sanitized IDs/statuses. Remove the temporary script afterward and independently verify exact-ID deletion.
 
-The interrupt mode intentionally exits its own worker process after creation; it does not kill the serving HTTP process or change infrastructure. This exercises actual durable ownership/reconciliation and complements browser authentication/SSE tests. A reported cleanup error remains a blocker requiring exact owned-orphan recovery. Never treat this drill as a successful complete workflow or replay recording.
+The interrupt mode intentionally exits its own worker after observing actual workflow steps from both Sandboxes; it does not kill the serving HTTP process or change infrastructure. This exercises actual durable ownership/reconciliation and complements browser authentication/SSE tests. A reported cleanup error remains a blocker requiring exact owned-orphan recovery. Never treat this drill as a successful complete workflow or replay recording.
+
+## Maintained operator tools
+
+Use the [locked development environment](../README.md#developer-quick-start) for these
+tools; the former smoke-only dependency list is no longer needed. The probes remain
+supported entry points even when CI does not invoke them. Review each tool's scope
+and CLI help before a live run; cloud probes create real disposable Sandboxes.
+
+| Tool | Purpose |
+| --- | --- |
+| [verify_environment.py](../scripts/verify_environment.py) | Local SDK/tool inspection; optional read-only Azure preflight |
+| [smoke_test_sandbox.py](../scripts/smoke_test_sandbox.py) | Genuine minimal workflow, credential binding, output capture and owned cleanup |
+| [smoke_test_remediation.py](../scripts/smoke_test_remediation.py) | Actual C failing-tests branch with publication skipped |
+| [probe_copilot_credentials.py](../scripts/probe_copilot_credentials.py) | Official SDK extension credential-access boundary and GitHub owner check |
+| [probe_publication.py](../scripts/probe_publication.py) | Same injected credential's private-repository create/push capability; remote writes require the documented scope |
+| [probe_sandbox_controls.py](../scripts/probe_sandbox_controls.py) | Real bounded-command timeout and outbound-policy checks |
+| [probe_sandbox_telemetry.py](../scripts/probe_sandbox_telemetry.py) | Workflow telemetry delivery for exact run/Sandbox markers |
+| [probe_app_recovery.py](../scripts/probe_app_recovery.py) | Deployed-runtime A/B cancellation and interruption reconciliation |
+| [cleanup_orphans.py](../scripts/cleanup_orphans.py) | Evidence-bound inspection and exact-ID deletion of owned smoke Sandboxes |
+| [export_schemas.py](../scripts/export_schemas.py) | Generate/check report contracts against backend models |
+| [verify_container.py](../scripts/verify_container.py) | Isolated application-image health/auth check without Azure access |
+
+[smoke_workflow_runner.py](../scripts/smoke_workflow_runner.py) is a shared runtime helper,
+uploaded by both smoke tools and the production Sandbox adapter. It and the trusted
+[workflow support files](../workflows/) are required application-image content.

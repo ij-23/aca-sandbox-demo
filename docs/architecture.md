@@ -16,7 +16,7 @@ The app never creates a fake successful run. By default `LIVE_EXECUTION_ENABLED=
 
 The [trusted source fixture](../demo-repo/README.md) is published at https://github.com/ij-23/academo-fastapi-fixture and executed only inside disposable Sandboxes. Its intentional document-path issue uses harmless temporary canaries in the regression tests. Platform tests/CI and the Docker build exclude fixture execution and packaging. A fixture test failure is an observed result only after a real Sandbox run, not because a local expectation predicts it.
 
-Event delivery uses a bounded recent window (256 events per run, eight cached runs) and Blob history for older cursors. Each log has count and 15 MiB byte budgets, below the reader's 16 MiB cap. Restart reconciliation marks work interrupted and attempts cleanup of every relevant run even after an earlier failure. Individual unresolved cleanup records block new work; retries clear only the resolved record. These behaviors have local double-based coverage, not yet live managed-identity/storage verification.
+Event delivery uses a bounded recent window (256 events per run, eight cached runs) and Blob history for older cursors. Each log has count and 15 MiB byte budgets, below the reader's 16 MiB cap. Restart reconciliation marks work interrupted and attempts cleanup of every relevant run even after an earlier failure. Individual unresolved cleanup records block new work; retries clear only the resolved record. Unit tests cover these edge cases; deployed UAMI persistence and actual A/B cancellation/interruption recovery also passed. An explicit authenticated SSE cursor transport drill remains open in [acceptance](./acceptance.md).
 
 ## Storage/network decision
 

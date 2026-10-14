@@ -1,8 +1,14 @@
 # Compatibility ledger
 
+Current verification and remaining work are summarized in [acceptance](./acceptance.md).
+The sections below are dated evidence, including historical blockers later resolved.
+The retired smoke-only requirements file mentioned in old commands was consolidated into
+the [locked development dependencies](../requirements-dev.txt); use the current
+[setup commands](../README.md#developer-quick-start) for new runs.
+
 ## Verified M0-CLI97 — 2026-10-14
 
-**Passed genuine Dynamic Workflow execution inside ACA.** The [approved test](./pending-approvals.md) created one built-in `copilot` Sandbox with the existing provider connection, downloaded only the approved checksum-pinned official 1.0.97 into its disposable directory, and deleted that Sandbox with exact-ID HTTP 404 verification. Detailed timings and IDs are in [progress](./progress.md#approved-m0-cli97-result--2026-10-14); private [sanitized evidence](../.local/m0-cli97-evidence.json) contains actual commands/results. Older sections below are historical and superseded where stated.
+**Passed genuine Dynamic Workflow execution inside ACA.** The [approved test](./progress.md#approved-m0-cli97-result--2026-10-14) created one built-in `copilot` Sandbox with the existing provider connection, downloaded only the approved checksum-pinned official 1.0.97 into its disposable directory, and deleted that Sandbox with exact-ID HTTP 404 verification. Detailed timings and IDs are in [progress](./progress.md#approved-m0-cli97-result--2026-10-14); private [sanitized evidence](../.local/m0-cli97-evidence.json) contains actual commands/results. Older sections below are historical and superseded where stated.
 
 Verified calls: `begin_create_sandbox(...).result(timeout=90)`, `get`, `exec`, `write_file`, `read_file`, `delete`, `list_sandboxes`, and exact-ID `get`. Verified invocation: `GITHUB_COPILOT_PROMPT_MODE_EXTENSIONS=true copilot --experimental --no-auto-update --no-custom-instructions --disable-builtin-mcps --available-tools=read --deny-tool=read workflow run aca-viability-smoke --args @input.json --result-file result.json --output-format json`. The CLI warns `read` is unknown in 1.0.97 (actual tool is `view`); the observed subagent used zero tools. No silent prompt substitution or login occurred.
 
@@ -12,7 +18,7 @@ Current Storage: Enabled public network, Allow default rule, HTTPS/TLS1.2, no pu
 
 ## Prepared compatible-CLI test and local platform — 2026-10-13
 
-The [M0-CLI97 request](./pending-approvals.md) is awaiting approval. No additional Sandbox has been created. The [harness](../scripts/smoke_test_sandbox.py) preserves the verified `disk="copilot", connections=[existing_id]` binding and accepts `--expected-cli-version 1.0.97 --pinned-cli`. The opt-in helper downloads the official Linux x64 standalone archive to a fresh disposable control directory, verifies SHA256 `07f3f63cb361e911268e8a4b010e06eeced8d4f2d898d13a8180273e34aeff3f`, and invokes that binary without changing the image/system installation. Source: [official release](https://github.com/github/copilot-cli/releases/tag/v1.0.97). Automatic updates stay disabled. No downloaded CLI or AI operation has been executed locally.
+At this historical checkpoint, the M0-CLI97 request was awaiting approval and no additional Sandbox had been created; see the [subsequent successful result](./progress.md#approved-m0-cli97-result--2026-10-14). The [harness](../scripts/smoke_test_sandbox.py) preserves the verified `disk="copilot", connections=[existing_id]` binding and accepts `--expected-cli-version 1.0.97 --pinned-cli`. The opt-in helper downloads the official Linux x64 standalone archive to a fresh disposable control directory, verifies SHA256 `07f3f63cb361e911268e8a4b010e06eeced8d4f2d898d13a8180273e34aeff3f`, and invokes that binary without changing the image/system installation. Source: [official release](https://github.com/github/copilot-cli/releases/tag/v1.0.97). Automatic updates stay disabled. No downloaded CLI or AI operation has been executed locally.
 
 Static source confirms `defineWorkflow`, `joinSession({workflows})` and direct workflow dispatch in 1.0.97. It does **not** establish entitlement, successful registration inside ACA, agent results, extension environment permissions or concurrent file polling. The smoke requests no secret environment access. C's ability to perform GitHub writes with the same injected PAT remains a separate explicit gate; do not bypass extension environment restrictions.
 
