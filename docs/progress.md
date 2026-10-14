@@ -367,3 +367,8 @@ One real sandbox lifecycle/failed-prompt test and verified cleanup now exist. No
 - AI returned an incorrect source line in the last review; verification correctly marked that finding unverified. Security prompt now supplies numbered source lines; exact source verification remains strict. Do not convert an unverified finding into a verified one merely to enable Fix.
 -68 platform Python tests,6 offline Terraform tests, frontend build/test, actionlint and isolated application-container checks pass. These are distinct from live Azure evidence.
 - Created public project destination https://github.com/ij-23/aca-sandbox-demo under standing authorization. Project source publication/CI is independent of the blocked same-PAT C publishing path.
+
+## Operational controls and CI — 2026-10-14
+
+- Trusted controls probe Sandbox0cfa210f-02ec-4770-8697-5a7aef37d8e2: timeout1s terminated sleep10 with exit124; allowed github.com returned200; default-denied example.com returned403. Creation0.996s, cleanup8.907s, exact404 verified. Protected Sandbox remained Stopped; no fixture execution, PAT exposure or ingress. This validates shell timeout and outbound rule behavior, not a full host-crash recovery drill.
+- Public project push f4eb686 succeeded. First hosted CI failed only because the last smoke CLI help-text edit needed Ruff formatting; fixed and retrying. No Azure deployment was triggered by that platform-only CI.

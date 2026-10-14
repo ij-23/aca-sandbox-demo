@@ -450,3 +450,7 @@ The Azure host validates Entra delegated tokens; browser PKCE login and authenti
 The C run c1285860-9b2e-4973-88ec-3f0516a831e1 produced18 LAW records with exact Sandbox586a8350-32f0-49f0-a88d-3327ed5fbde0 and role remediation. Main entrypoint `touch /tmp/academo-telemetry.jsonl; exec tail -n +1 -F /tmp/academo-telemetry.jsonl` forwards the trusted runtime's metadata journal to collected stdout. Direct writes from detached execution to /proc/1/fd/1 were not observed in LAW and are no longer used. Copilot disk and provider connection are unchanged.
 
 Live A/B genuine workflows passed execution with expected fixture results (A verified source finding, B 2 passed/2 failed and runtime skipped). The live dashboard received48 events, but a post-run Blob read revealed only the last event. Installed azure-storage-blob documents create_append_blob as overwriting any existing blob. Conditional creation with MatchConditions.IfMissing fixes this; validate subsequent full persisted histories before claiming reconnect/replay durability.
+
+### Live egress and command timeout
+
+Probe0cfa210f-02ec-4770-8697-5a7aef37d8e2 used built-in copilot, existing binding and official EgressPolicy(default_action="Deny",traffic_inspection="Full") with github.com allowed. GitHub HTTPS returned200, example.com returned403. `timeout --kill-after=1s 1s sleep 10` returned124. Exact-ID cleanup completed in8.907s. Real A/B also exercised the production allowlist for GitHub/Copilot/PyPI. No group-global egress or hard-lifetime enforcement is claimed.

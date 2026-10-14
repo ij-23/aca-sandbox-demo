@@ -393,7 +393,9 @@ def parser():
         action="store_true",
         help="Download checksum-pinned official 1.0.97 into the owned disposable Sandbox control directory",
     )
-    p.add_argument("--execute", action="store_true", help="Create/run/delete one bounded Sandbox within the authorized group")
+    p.add_argument(
+        "--execute", action="store_true", help="Create/run/delete one bounded Sandbox within the authorized group"
+    )
     p.add_argument("--confirm-group", help="Exact approved Sandbox Group ARM ID")
     p.add_argument("--output", type=Path, default=ROOT / ".local/smoke-evidence.json")
     p.add_argument("--telemetry-config", type=Path, help="Terraform-exported non-secret telemetryConfig JSON")
