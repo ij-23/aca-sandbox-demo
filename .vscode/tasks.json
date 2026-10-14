@@ -1,0 +1,8 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {"label":"Build dashboard","type":"shell","command":"npm","args":["--prefix","frontend","run","build"],"group":"build","problemMatcher":["$tsc"]},
+    {"label":"Test platform","type":"shell","command":"${workspaceFolder}/.venv/bin/python","args":["-m","pytest","-q"],"group":"test","problemMatcher":[]},
+    {"label":"Preview host (live execution disabled)","type":"shell","command":"${workspaceFolder}/.venv/bin/python","args":["-m","uvicorn","app.main:app","--app-dir","backend","--host","127.0.0.1","--port","8000","--no-access-log"],"options":{"env":{"LIVE_EXECUTION_ENABLED":"false"}},"isBackground":true,"problemMatcher":[]}
+  ]
+}

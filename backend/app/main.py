@@ -1,4 +1,5 @@
 """Single-process Azure app, bearer-authenticated API and resumable SSE."""
+
 import asyncio
 import json
 from contextlib import asynccontextmanager
@@ -16,13 +17,21 @@ from .store import BlobStore, Events, UnavailableStore
 
 def create_app(settings=None, *, store=None, executor=None, verifier=None):
     settings = settings or Settings.from_env()
-    store = store or (BlobStore(settings.storage_account, settings.managed_identity_client_id)
-                      if settings.storage_account and settings.managed_identity_client_id else UnavailableStore())
+    store = store or (
+        BlobStore(settings.storage_account, settings.managed_identity_client_id)
+        if settings.storage_account and settings.managed_identity_client_id
+        else UnavailableStore()
+    )
     events = Events(store, settings.event_retention_limit)
+    if executor is None and settings.live_execution_enabled:
+        from .sandbox import SandboxExecutor
+
+        executor = SandboxExecutor(settings, store, events)
     authenticate = verifier or EntraVerifier(settings)
     runtime = None
     if executor is not None:
         from .orchestrator import Orchestrator
+
         runtime = Orchestrator(settings, store, events, executor)
 
     @asynccontextmanager
@@ -39,10 +48,17 @@ def create_app(settings=None, *, store=None, executor=None, verifier=None):
         yield
         if runtime:
             await runtime.shutdown()
+        if executor is not None and hasattr(executor, "close"):
+            await executor.close()
         await store.close()
 
-    app = FastAPI(title="From Untrusted Code to Trusted Decisions", lifespan=lifespan,
-                  docs_url=None, redoc_url=None, openapi_url=None)
+    app = FastAPI(
+        title="From Untrusted Code to Trusted Decisions",
+        lifespan=lifespan,
+        docs_url=None,
+        redoc_url=None,
+        openapi_url=None,
+    )
     app.state.ready = False
 
     @app.middleware("http")
@@ -66,7 +82,8 @@ def create_app(settings=None, *, store=None, executor=None, verifier=None):
         response.headers["Content-Security-Policy"] = (
             "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; "
             "img-src 'self' data:; connect-src 'self' https://login.microsoftonline.com; "
-            "frame-src https://login.microsoftonline.com; object-src 'none'; base-uri 'self'; frame-ancestors 'none'")
+            "frame-src https://login.microsoftonline.com; object-src 'none'; base-uri 'self'; frame-ancestors 'none'"
+        )
         return response
 
     @app.exception_handler(Exception)
@@ -94,16 +111,25 @@ def create_app(settings=None, *, store=None, executor=None, verifier=None):
 
     @app.get("/api/readyz")
     async def ready():
-        return JSONResponse({"ready": app.state.ready, "live_execution_enabled": settings.live_execution_enabled and runtime is not None},
-                            status_code=200 if app.state.ready else 503)
+        return JSONResponse(
+            {
+                "ready": app.state.ready,
+                "live_execution_enabled": settings.live_execution_enabled and runtime is not None,
+            },
+            status_code=200 if app.state.ready else 503,
+        )
 
     @app.get("/api/config")
     async def config():
-        return {"tenant_id": settings.tenant_id, "spa_client_id": settings.spa_client_id,
-                "api_scope": f"api://{settings.api_client_id}/access_as_user",
-                "live_execution_enabled": settings.live_execution_enabled and runtime is not None,
-                "allowed_repositories": settings.allowed_repositories,
-                "publication_owner": settings.publication_owner}
+        return {
+            "tenant_id": settings.tenant_id,
+            "spa_client_id": settings.spa_client_id,
+            "api_scope": f"api://{settings.api_client_id}/access_as_user",
+            "live_execution_enabled": settings.live_execution_enabled and runtime is not None,
+            "allowed_repositories": settings.allowed_repositories,
+            "publication_owner": settings.publication_owner,
+            "publication_enabled": settings.publication_enabled,
+        }
 
     @app.get("/api/me")
     async def me(principal: Principal = Depends(authenticate)):
@@ -122,9 +148,31 @@ def create_app(settings=None, *, store=None, executor=None, verifier=None):
     async def get_run(identifier: str, principal: Principal = Depends(authenticate)):
         return await owned(identifier, principal)
 
+    @app.get("/api/runs/{identifier}/replay")
+    async def recording(identifier: str, principal: Principal = Depends(authenticate)):
+        value = await owned(identifier, principal)
+        reports = value.get("reports", {})
+        if (
+            value["status"] != "completed"
+            or value.get("event_delivery_failed")
+            or value.get("cleanup_pending")
+            or set(reports) != {"security", "build", "remediation"}
+            or reports["remediation"].get("publication_status") != "published"
+        ):
+            raise HTTPException(409, "No complete genuine A/B/C recording is available")
+        captured = await events.read(identifier)
+        observed = {e["sandbox_role"] for e in captured if e["sandbox_id"] and e["type"] == "workflow.completed"}
+        if observed != {"security", "build", "remediation"}:
+            raise HTTPException(409, "Recording lacks sandbox-backed workflow evidence")
+        return {"mode": "replay", "run": value, "events": captured}
+
     @app.post("/api/runs/{identifier}/remediate", status_code=202)
     async def remediate(identifier: str, body: Remediate, principal: Principal = Depends(authenticate)):
         enabled()
+        if not settings.publication_enabled:
+            raise HTTPException(
+                503, "Remediation awaits verified publication credentials and explicit deployment approval"
+            )
         value = await owned(identifier, principal)
         return await runtime.remediate(value, body)
 
@@ -153,18 +201,19 @@ def create_app(settings=None, *, store=None, executor=None, verifier=None):
             # Re-authenticate on reconnection at least once per minute so expiry and revocation checks recur.
             deadline = asyncio.get_running_loop().time() + 60
             while not await request.is_disconnected() and asyncio.get_running_loop().time() < deadline:
-                signal = events.signals.setdefault(identifier, asyncio.Event())
+                signal = events.changed
                 signal.clear()
-                for event in (await events.read(identifier))[cursor:]:
+                for event in await events.read(identifier, after=cursor):
                     yield f"id: {event['event_id']}\ndata: {json.dumps(event)}\n\n"
                     cursor = event["event_id"]
                 try:
                     await asyncio.wait_for(signal.wait(), timeout=10)
                 except TimeoutError:
                     yield ": heartbeat\n\n"
+
         return StreamingResponse(output(), media_type="text/event-stream", headers={"X-Accel-Buffering": "no"})
 
-    static = Path(__file__).resolve().parents[2] / "static"
+    static = Path(__file__).resolve().parents[1] / "static"
     if (static / "assets").is_dir():
         app.mount("/assets", StaticFiles(directory=static / "assets"), name="assets")
 

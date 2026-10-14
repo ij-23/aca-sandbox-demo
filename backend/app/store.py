@@ -1,6 +1,9 @@
 """Private Blob persistence via managed identity; no key or local-data fallback."""
+
+import asyncio
 import json
-from typing import Any
+from collections import OrderedDict, deque
+from dataclasses import dataclass
 
 from azure.core.exceptions import ResourceExistsError, ResourceNotFoundError
 from azure.identity.aio import ManagedIdentityCredential
@@ -14,8 +17,13 @@ class BlobStore:
         if not account.isalnum() or not client_id:
             raise ValueError("Storage and managed identity must be configured")
         self.credential = ManagedIdentityCredential(client_id=client_id)
-        self.service = BlobServiceClient(f"https://{account}.blob.core.windows.net", credential=self.credential,
-                                        connection_timeout=10, read_timeout=20, retry_total=1)
+        self.service = BlobServiceClient(
+            f"https://{account}.blob.core.windows.net",
+            credential=self.credential,
+            connection_timeout=10,
+            read_timeout=20,
+            retry_total=1,
+        )
 
     async def ready(self):
         for name in ("reports", "events", "diffs", "replay"):
@@ -63,10 +71,27 @@ class BlobStore:
         if role not in ("security", "build", "remediation"):
             raise ValueError("Invalid report role")
         await self.service.get_blob_client("reports", f"{run_id(identifier)}/{role}.json").upload_blob(
-            json.dumps(value), overwrite=True)
+            json.dumps(value), overwrite=True
+        )
         if role == "remediation" and value.get("diff"):
             await self.service.get_blob_client("diffs", f"{run_id(identifier)}/remediation.diff").upload_blob(
-                value["diff"], overwrite=True)
+                value["diff"], overwrite=True
+            )
+
+    async def save_ownership(self, record: dict):
+        from uuid import UUID
+
+        nonce = UUID(record["nonce"]).hex
+        key = f"{run_id(record['run_id'])}/ownership/{nonce}.json"
+        await self.service.get_blob_client("reports", key).upload_blob(json.dumps(record), overwrite=True)
+
+    async def ownership(self, identifier: str):
+        prefix = f"{run_id(identifier)}/ownership/"
+        values = []
+        async for blob in self.service.get_container_client("reports").list_blobs(name_starts_with=prefix):
+            data = await self.service.get_blob_client("reports", blob.name).download_blob()
+            values.append(json.loads(await data.readall()))
+        return values
 
     async def close(self):
         await self.service.close()
@@ -75,6 +100,7 @@ class BlobStore:
 
 class UnavailableStore:
     """Configuration failure is explicit; never present volatile data as durable."""
+
     async def ready(self):
         raise RuntimeError("Azure Blob Storage is not configured")
 
@@ -88,39 +114,89 @@ class UnavailableStore:
         await self.ready()
 
 
+@dataclass
+class EventWindow:
+    entries: deque
+    count: int
+    bytes_used: int
+
+
 class Events:
-    def __init__(self, store, limit: int):
-        import asyncio
+    def __init__(self, store, limit: int, *, window=256, cached_runs=8, byte_limit=15 * 1024 * 1024):
         self.store = store
         self.limit = limit
-        self.locks: dict[str, Any] = {}
-        self.signals: dict[str, Any] = {}
-        self.cache: dict[str, list[dict]] = {}
-        self.asyncio = asyncio
+        self.window, self.cached_runs, self.byte_limit = window, cached_runs, byte_limit
+        self.lock = asyncio.Lock()
+        self.changed = asyncio.Event()
+        self.cache: OrderedDict[str, EventWindow] = OrderedDict()
 
-    async def read(self, identifier: str) -> list[dict]:
-        if identifier not in self.cache:
-            self.cache[identifier] = await self.store.events(identifier)
-        return self.cache[identifier]
+    @staticmethod
+    def size(value):
+        return len((json.dumps(value) + "\n").encode())
+
+    async def _load(self, identifier):
+        values = await self.store.events(identifier)
+        if any(e["event_id"] != i for i, e in enumerate(values, 1)):
+            raise ValueError("Stored event sequence is not contiguous")
+        self.cache[identifier] = EventWindow(
+            deque(values[-self.window :], maxlen=self.window), len(values), sum(map(self.size, values))
+        )
+        self.cache.move_to_end(identifier)
+        while len(self.cache) > self.cached_runs:
+            self.cache.popitem(last=False)
+        return values
+
+    async def read(self, identifier: str, after: int = 0) -> list[dict]:
+        async with self.lock:
+            cached = self.cache.get(identifier)
+            if cached is None or (cached.entries and after < cached.entries[0]["event_id"] - 1):
+                values = await self._load(identifier)
+            else:
+                self.cache.move_to_end(identifier)
+                values = list(cached.entries)
+            return [e for e in values if e["event_id"] > after]
 
     async def emit(self, identifier: str, role: str, kind: str, *, sandbox_id=None, step_id=None, **payload):
         from .contracts import Event, now
         from .security import redact
-        lock = self.locks.setdefault(identifier, self.asyncio.Lock())
-        async with lock:
-            previous = await self.read(identifier)
-            if len(previous) >= self.limit:
+
+        async with self.lock:
+            if identifier not in self.cache:
+                await self._load(identifier)
+            previous = self.cache[identifier]
+            self.cache.move_to_end(identifier)
+            if previous.count >= self.limit:
                 raise RuntimeError("Per-run event budget exhausted")
-            value = Event(event_id=len(previous) + 1, run_id=identifier, timestamp=now(), sandbox_role=role,
-                          sandbox_id=sandbox_id, type=kind, step_id=step_id, payload=redact(payload)).model_dump()
-            if len(json.dumps(value).encode()) > 16000:
+            value = Event(
+                event_id=previous.count + 1,
+                run_id=identifier,
+                timestamp=now(),
+                sandbox_role=role,
+                sandbox_id=sandbox_id,
+                type=kind,
+                step_id=step_id,
+                payload=redact(payload),
+            ).model_dump()
+            size = self.size(value)
+            if size > 16000:
                 raise ValueError("Event exceeds payload budget")
+            if previous.bytes_used + size > self.byte_limit:
+                raise RuntimeError("Per-run event byte budget exhausted")
             try:
                 await self.store.append_event(identifier, value)
             except Exception:
                 # Re-read after an ambiguous append; never reuse a cached event ID.
                 self.cache.pop(identifier, None)
                 raise
-            previous.append(value)
-            self.signals.setdefault(identifier, self.asyncio.Event()).set()
+            previous.entries.append(value)
+            previous.count += 1
+            previous.bytes_used += size
+            self.changed.set()
+            # Console diagnostics follow persistence and cannot break delivery/cleanup.
+            try:
+                from .telemetry import lifecycle
+
+                lifecycle(value)
+            except Exception:
+                pass
             return value

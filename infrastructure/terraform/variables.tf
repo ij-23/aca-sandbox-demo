@@ -89,3 +89,29 @@ variable "sandbox_operators" {
     error_message = "Operators need object UUIDs and User, Group or ServicePrincipal type."
   }
 }
+
+variable "application" {
+  description = "Null preserves the foundation-only phase. Supply reviewed auth and an already-pushed app digest for application deployment."
+  type = object({
+    image                    = string
+    api_client_id            = string
+    spa_client_id            = string
+    authorized_users         = set(string)
+    allowed_repositories     = set(string)
+    credential_connection_id = string
+    publication_owner        = string
+    public_origin            = string
+    live_execution_enabled   = optional(bool, false)
+    publication_enabled      = optional(bool, false)
+  })
+  default = null
+  validation {
+    condition = var.application == null ? true : (
+      length(var.application.authorized_users) > 0 &&
+      length(var.application.allowed_repositories) > 0 &&
+      alltrue([for id in concat(tolist(var.application.authorized_users), [var.application.api_client_id, var.application.spa_client_id, var.application.credential_connection_id]) : can(regex("^[0-9a-fA-F]{8}(-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}$", id))]) &&
+      can(regex("^https://[a-z0-9.-]+$", var.application.public_origin))
+    )
+    error_message = "Application requires real Entra UUIDs, authorized users, vetted repositories, existing connection and HTTPS origin."
+  }
+}

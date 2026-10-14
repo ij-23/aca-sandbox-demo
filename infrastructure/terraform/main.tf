@@ -61,3 +61,33 @@ module "access" {
   operators               = var.sandbox_operators
 }
 
+module "application" {
+  count               = var.application == null ? 0 : 1
+  source              = "./modules/application"
+  name                = "ca-${local.stem}"
+  resource_group_name = module.resource_group.name
+  environment_id      = module.monitoring.environment_id
+  identity_id         = module.identity.id
+  registry_server     = module.registry.login_server
+  image               = var.application.image
+  tags                = local.tags
+  environment = {
+    TENANT_ID                  = var.tenant_id
+    API_CLIENT_ID              = var.application.api_client_id
+    SPA_CLIENT_ID              = var.application.spa_client_id
+    AUTHORIZED_USERS           = join(",", sort(tolist(var.application.authorized_users)))
+    ALLOWED_REPOSITORIES       = join(",", sort(tolist(var.application.allowed_repositories)))
+    STORAGE_ACCOUNT            = module.storage.name
+    MANAGED_IDENTITY_CLIENT_ID = module.identity.client_id
+    SUBSCRIPTION_ID            = var.subscription_id
+    RESOURCE_GROUP             = module.resource_group.name
+    SANDBOX_GROUP              = module.sandbox_group.name
+    CREDENTIAL_CONNECTION_ID   = var.application.credential_connection_id
+    REGION                     = var.region
+    PUBLIC_ORIGIN              = var.application.public_origin
+    PUBLICATION_OWNER          = var.application.publication_owner
+    LIVE_EXECUTION_ENABLED     = tostring(var.application.live_execution_enabled)
+    PUBLICATION_ENABLED        = tostring(var.application.publication_enabled)
+  }
+  depends_on = [module.access]
+}

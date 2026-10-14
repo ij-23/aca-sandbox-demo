@@ -1,6 +1,19 @@
 # Development progress
 
-## Current status — 2026-10-13
+## Current status — 2026-10-14
+
+**M0-CLI97 genuine workflow proof PASSED; full project remains incomplete.** On explicit approval, created exactly one disposable Sandbox using the built-in copilot disk and existing provider connection. Checksum-pinned CLI 1.0.97 loaded the genuine extension, executed deterministic preparation, Copilot AI and actual-result conditional verification. SDK file polling observed real progress before completion. Finally deletion and exact-ID HTTP 404 passed. No additional Sandbox or GitHub write is authorized by this consumed approval. Continue independent implementation; next live scopes require concrete approval.
+
+Storage networking was verified read-only: publicNetworkAccess Enabled, defaultAction Allow, no private endpoints, HTTPS/TLS1.2, public blob/shared-key access disabled. HTTPS reached the Blob service (anonymous 409 public access forbidden); operator OAuth listing failed authorization. This is not the old networking blocker. Do not change networking. UAMI data-plane access requires deployed-host verification.
+
+- Implemented local FastAPI platform contracts, Entra RS256 issuer/audience/tenant/delegated-scope/user-allowlist verification, owner checks, repository allowlisting/SHA resolution, redaction, managed-identity Blob storage, durable-before-delivery events, SSE cursors and deterministic A/B admission/orchestration. The real executor is now implemented but disabled by default pending broader live verification; no in-memory production fallback exists.
+- Implemented React/TypeScript dashboard source with A/B/C lifecycle/timelines, real-event console, reports/diffs, one explicit fix/private-publication confirmation, Entra MSAL sign-in and bearer-authenticated reconnecting SSE. Empty states contain no invented execution. TypeScript/Vite build passed; the empty dashboard was inspected in the local browser. Replay is gated on complete Sandbox-backed A/B/C evidence; no recording is fabricated. The 1080p live-data exercise remains pending.
+- Local verification: **64 Python tests passed**, including signed-token rejection cases, spoofed principal headers, owner boundaries, URL attacks, event ordering/durability, parallel A/B test doubles and smoke finally cleanup. Ruff checks pass. Vitest 5.0.3 passes, npm audit reports zero advisories, schema export matches, and the application image builds and passes a network-isolated container smoke. One Starlette/httpx test-client deprecation warning remains. Test doubles exist only in tests and are not cloud evidence.
+- The existing protected sandbox had no alternative Copilot executable under the bounded inspected paths (`/root/.local`, `/home`, `/opt`); its default remains 1.0.83. This does not identify the user's separate 1.0.97 observation.
+
+### Earlier investigation checkpoints
+
+Historical snapshots below describe their dates, not the current gate. The 2026-10-14 M0-CLI97 result above supersedes earlier workflow-capability blockers.
 
 **Latest comparison after the user's 1.0.97 report:** static inspection of the checksum-verified official 1.0.97 package confirms `defineWorkflow`, workflow registration, direct command dispatch and result handling. No CLI upgrade is justified for a sandbox already using that version. The target group currently lists only protected sandbox `5bf17eda-250b-4c90-9cd6-bd44a5610851`, now Running; read-only exec reports **1.0.83** as `root` from `/usr/local/bin/copilot`. Its portal preset label/private disk reference differs from our public-disk create request, but that does not explain the version mismatch conclusively. Asked the user to identify the sandbox/portal URL that showed 1.0.97. No new sandbox, lifecycle change, workflow execution, credential change or Terraform change occurred. See [comparison evidence](./compatibility.md#current-comparison-user-reported-cli-1097--2026-10-13).
 
@@ -8,7 +21,7 @@
 
 **Milestone 0 remains blocked on genuine Dynamic Workflow execution.** The reusable harness now attaches the existing Ready provider credential connection. One newly approved sandbox confirmed Copilot **1.0.83** and injected `COPILOT_GITHUB_TOKEN`, but `copilot --no-auto-update --experimental workflow run --help` returned general help with no workflow subcommand/`--args`/`--result-file`. The harness stopped at that capability gate, before workflow extension upload/execution. No workflow outputs, steps or live progress were produced. Creation **1.010s**, finally cleanup **6.879s**, total **13.529s**; exact-ID GET **404** verified. The pre-existing sandbox remains Stopped and untouched. No additional sandbox, credential/Terraform change, GitHub write, CLI upgrade or application development occurred.
 
-Implemented the [Terraform foundation](../infrastructure/terraform/), [smoke harness](../scripts/smoke_test_sandbox.py), [real workflow extension](../workflows/smoke/extension.mjs), and [deployment guide](./deployment.md). Application development remains blocked on real Milestone 0 evidence.
+Implemented the [Terraform foundation](../infrastructure/terraform/), [smoke harness](../scripts/smoke_test_sandbox.py), [real workflow extension](../workflows/smoke/extension.mjs), and [deployment guide](./deployment.md). The corresponding live SDK/workflow integrations remain blocked on real Milestone 0 evidence; independent platform work is authorized by the latest request.
 
 **Revised scope:** A/B run genuine concurrent Dynamic Workflows; one **Fix Vulnerability** approval starts C's third genuine Dynamic Workflow for fix, deterministic validation, private `{repo}-fixed` creation/push inside C using the same group PAT, and verified repository URL/SHA. All three workflows must be observable in React. The [plan](../PLAN.md) and checklist reflect this requirement; C implementation and publication verification remain undone. The [README](../README.md) defines the current PAT requirements; successful Copilot authentication does not establish publication readiness. This diagnosis was limited to one disposable runtime sandbox and preserved all Terraform artifacts.
 
@@ -37,11 +50,11 @@ Implemented the [Terraform foundation](../infrastructure/terraform/), [smoke har
 - [x] Prepare findings, blockers and proposed sequence for delivery at this planning checkpoint, before implementation.
 - [x] Re-read updated AGENTS.md/README.md and align PLAN.md/checklist with all three genuine Dynamic Workflows, one Fix approval, deterministic C publication and React observability (2026-10-13).
 - [x] Resolve SDK download problem using pip's configured Microsoft proxy explicitly in uv; install pinned isolated dependencies and verify SDK import.
-- [x] Inspect installed SDK signatures/source; verify DefaultAzureCredential access, one create/exec/get/delete lifecycle and completed stdout/stderr/exit codes. File transfer, workflow capture, concurrent polling and timeout-path behavior remain untested.
+- [x] Inspect installed SDK signatures/source; verify DefaultAzureCredential access, one create/exec/get/delete lifecycle and completed stdout/stderr/exit codes. File transfer, genuine workflow capture and concurrent polling passed in M0-CLI97; live timeout-path behavior remains untested.
 - [ ] Inspect installed provider runtime schemas, API contracts, authConfig support and group-policy ownership.
 - [x] Retrieve intended subscription/tenant and initial User operator via authorized CLI discovery; Sweden Central/prefix academo selected. Approved foundation deployed.
 - [x] Verify target quota, role definition and read-only public-image metadata; deployed group lists `copilot` as Ready.
-- [x] Prepare genuine workflow with deterministic preparation, `ctx.agent`, actual-result conditional verification, structured per-step outputs and boundary events; update bounded harness for provider binding, file delivery/polling and finally cleanup. Fourteen local unit tests passed; genuine live execution remains blocked by CLI capability gate.
+- [x] Prepare genuine workflow with deterministic preparation, `ctx.agent`, actual-result conditional verification, structured per-step outputs and boundary events; update bounded harness for provider binding, file delivery/polling and finally cleanup. Initial fourteen unit tests passed; genuine live execution subsequently passed in M0-CLI97.
 - [ ] Verify official GitHub personal-owner repository creation API/permission requirements, `X-Accepted-GitHub-Permissions`, account restrictions and actual git push requirements; do not assume creation grants push.
 - [x] Verify Sandbox Group Copilot credential configuration and runtime injection (2026-10-13): API Ready maps to portal Configured; explicit connection binding injects `COPILOT_GITHUB_TOKEN`. Only set/unset booleans reported, no credential values collected.
 - [ ] Verify updated demo publication PAT capability: disposable personal owner/Copilot seat, Copilot Requests, Repository creation: Write, Contents: Read and write, current/future repository access and short expiration. Configuration confirmation alone does not prove these permissions; publication testing is outside current approval.
@@ -49,13 +62,13 @@ Implemented the [Terraform foundation](../infrastructure/terraform/), [smoke har
 - [x] Reverify approved group ARM state, copilot Ready status and authenticated sandbox inventory; leave the pre-existing stopped sandbox untouched.
 - [x] Execute exactly one SDK smoke attempt with trusted prompt, no ports and no third-party repository; finally delete and verify exact-ID 404. Automatic Copilot authentication failed; workflow execution was not reached.
 - [x] Diagnose automatic credential binding for SDK `disk="copilot"`: omitted `connections` caused the previous failure. Existing Ready connection attached in one newly authorized sandbox; same CLI 1.0.83 prompt succeeded without login or manual token injection; finally cleanup and GET 404 verified.
-- [x] Incorporate verified connection-ID binding into reusable smoke harness; require existing Ready connection ID and verify returned attachment. Live workflow-capability attempt confirmed injection (2026-10-13). Application adapter remains future work.
+- [x] Incorporate verified connection-ID binding into reusable smoke harness; require existing Ready connection ID and verify returned attachment. Live workflow-capability attempt confirmed injection (2026-10-13). Application adapter is implemented; its full Azure integration remains unverified.
 - [x] Check in-sandbox workflow help with `--experimental` in one newly approved sandbox: CLI 1.0.83 returned identical general help, without the documented direct workflow command. Exact-ID cleanup verified (2026-10-13).
 - [x] Investigate CLI 1.0.83 statically beyond help: verify official release checksum, actual extension exports/registration, experimental handling, documented extension paths and trust opt-in. Confirm the standard release lacks the required Dynamic Workflow API; distinguish this from an actual in-image import test.
 - [x] Inspect official CLI 1.0.97 package and confirm genuine workflow API/registration/direct-command implementation. Compare existing sandbox metadata and read-only executable version without creating or upgrading anything.
 - [ ] Identify the user-reported 1.0.97 sandbox/executable and resolve its difference from the target group's root exec environment (1.0.83); preserve the existing sandbox. Adjust the harness's explicit reviewed-version gate before an approved test on a compatible version.
-- [ ] Select a compatible built-in image or explicitly approved pinned CLI version and obtain a new sandbox approval before live verification. Do not automatically upgrade, substitute factory/prompt execution, or reuse the consumed one-sandbox approval.
-- [ ] Execute real smoke; record credential success, workflow registration/AI step/branch, structured output, actual transport and verified deletion.
+- [x] Explicit M0-CLI97 approval consumed 2026-10-14: pinned official CLI in one disposable Sandbox; genuine workflow passed; exact-ID deletion confirmed.
+- [x] Execute real smoke; credential auth without login, genuine registration/AI/conditional branch, result and six boundary events, live file polling and exact-ID cleanup verified (2026-10-14).
 - [ ] Implement/exercise a genuine C Dynamic Workflow PoC inside an approved sandbox; prove failing build/tests or targeted recheck branches to a report with repository creation/push skipped and no remote write.
 - [ ] Verify the same group-injected PAT is accessible through a supported GitHub API/git authentication path inside C without revealing/copying it to the host; block publication if unavailable, no alternate credential/backend publisher.
 - [ ] Obtain separate approval for exact disposable private test-repository owner/name, harmless content, create/push action and sandbox scope; then verify private repository creation, harmless push and remote owner/URL/SHA using that same injected credential.
@@ -71,27 +84,30 @@ Implemented the [Terraform foundation](../infrastructure/terraform/), [smoke har
 - [x] Run formatting, inspect installed provider schemas and validate; five offline Terraform tests pass.
 - [x] Produce real saved foundation plan with discovered identity, Sweden Central, academo prefix and signed-in User operator: 23 additions, no changes/deletions.
 - [x] Present plan; apply exact saved plan after explicit approval; verify all resources and record policy-imposed Storage deviation.
-- [ ] Resolve policy-imposed Storage connectivity blocker through a separately reviewed and approved design before app deployment.
+- [x] Verify user-resolved Storage networking read-only (2026-10-14). Endpoint reachable; no network change made. App UAMI Blob authorization remains an integration gate.
 
 ### Milestone 2 — application image and CI/CD
 
-- [ ] Create React/FastAPI host and multi-stage Dockerfile.
-- [ ] Implement server-side authorization, Blob persistence and health/readiness endpoints.
-- [ ] Implement platform-only CI tests and OIDC build/push/Terraform deployment with one image owner.
+- [x] Create React/FastAPI host and multi-stage Dockerfile; local AMD64 image build and isolated HTTP/static/non-root checks passed. No Azure deployment claimed.
+- [x] Implement server-side authorization, Blob persistence adapter and health/readiness endpoints; local security tests pass. Entra sign-in and Blob managed-identity access remain Azure verification gates.
+- [x] Implement platform-only CI lint/tests/schema/frontend/image checks with no Azure credentials or fixture execution.
+- [ ] Implement approved OIDC build/push/Terraform deployment with one image owner and durable state.
 - [ ] Validate image and approved Azure HTTPS deployment, login and managed identity access.
 
 ### Milestone 3 — real A/B execution
 
-- [ ] Implement vetted repository URL validation and immutable SHA resolution.
-- [ ] Implement strict event/report schemas for all three workflows, redaction and ownership ledger; C report includes validation, publication outcome, `fixed_repository_url` and verified commit SHA on success.
-- [ ] Implement SDK adapter, concurrent A/B orchestration, quotas and timeouts.
-- [ ] Implement real security and build Dynamic Workflows with observed branches.
+- [x] Implement vetted repository URL validation and bounded public immutable-SHA resolution; input rejection covered locally.
+- [x] Implement strict event/report schemas and generated JSON contracts for all three workflows, redaction and run-owner state; C report validates publication evidence and approved destination.
+- [x] Connect durable per-attempt ownership intent to the real SDK executor; local cleanup/cancellation tests passed; Azure integration pending.
+- [x] Implement deterministic concurrent A/B orchestration, single-run admission, timeouts and per-run cleanup-failure recovery; verified with explicit unit-test doubles.
+- [ ] Verify the implemented real SDK adapter through approved Azure A/B/C runs.
+- [ ] Verify implemented security and build Dynamic Workflows and observe branches in Azure.
 - [ ] Verify real A/B results, cancellation, partial failure, restart reconciliation and cleanup.
 
 ### Milestone 4 — observability dashboard
 
 - [ ] Implement lifecycle cards and genuine Dynamic Workflow timelines for A, B and C: concurrent A/B and full C timeline after Fix approval; real logs, timestamps, branch/skip/retry evidence and cleanup states.
-- [ ] Implement single Fix Vulnerability confirmation disclosing selected finding, immutable source and private destination creation/push; no separate Publish button.
+- [x] Implement single Fix Vulnerability confirmation disclosing finding, source SHA and private destination; no separate Publish button. End-to-end live behavior remains unverified.
 - [ ] Show C stages `checkout`, `agent.fix`, `validate`, `publication.gate`, `create_repo`, `push`, `verify_remote`, `complete`; validation results/diff, failure or partial-publication status, and clickable verified repository URL/commit SHA.
 - [ ] Verify authenticated SSE resume/heartbeat and durable history beyond ring buffer for all three workflows, including C branch/publication events; disclose polling if true streaming is unavailable.
 - [ ] Verify genuine replay includes A/B/C timelines and publication outcome while performing no sandbox or GitHub side effects; no synthetic live events.
@@ -99,14 +115,14 @@ Implemented the [Terraform foundation](../infrastructure/terraform/), [smoke har
 
 ### Milestone 5 — approved remediation and publication Dynamic Workflow
 
-- [ ] Bind one Fix Vulnerability approval to user/run/finding/source SHA/destination/attempt; enforce ownership and reject duplicate, stale or concurrent requests. No C before consent and no second publication approval in the product flow.
-- [ ] Implement C as a third trusted registered Copilot Dynamic Workflow; only fix selection/patch reasoning goes to Copilot, deterministic code controls validation and publication.
+- [x] Bind one Fix Vulnerability approval to user/run/finding/source SHA/destination/attempt; local tests reject stale and repeated approvals and wrong report destinations. No live C executor is enabled; cloud acceptance remains open.
+- [x] Implement C as a third genuine registered extension with deterministic validation/publication code. Actual C execution/publication remains unverified and gated.
 - [ ] Execute pinned checkout, bounded fix, build/tests and targeted security recheck; capture reviewable diff including new files. Failed, missing or timed-out required validation reports failure and skips all remote writes.
 - [ ] On success, verify personal destination owner and name availability; collisions fail without overwrite. Create private `{original-name}-fixed` inside C through the verified API with the same group PAT.
 - [ ] Commit/push checked sanitized fixed source with fresh history, including new files and license/attribution; exclude old `.git`, credentials, `.env`, runtime artifacts and secret-bearing fixtures; original repo/remote unchanged.
 - [ ] Verify remote owner/name/private visibility and pushed SHA before returning successful `remediation.json` with `fixed_repository_url`, commit SHA, diff and validation evidence.
 - [ ] Handle API/git permission errors, rate limits, name collisions, ambiguous create/push responses, timeouts and partial publication with observable reasons; reconcile before retries, no overwrite or automatic remote deletion.
-- [ ] Persist sanitized diff/report and publication outcome to Blob before deleting C; expose persistence failures and preserve recovery/cleanup tracking. Resolve the Storage connectivity blocker before app-integrated C testing.
+- [ ] Persist sanitized diff/report and publication outcome to Blob before deleting C; expose persistence failures and preserve recovery/cleanup tracking. Verify deployed-UAMI data access before app-integrated C testing; Storage networking is resolved.
 - [ ] Exercise real passing and failing C branches, UI timeline/reconnect/result link, stale/duplicate consent rejection and cleanup; verify original repository unchanged and no success reported without remote verification.
 
 ### Milestone 6 — customer readiness
@@ -116,6 +132,19 @@ Implemented the [Terraform foundation](../infrastructure/terraform/), [smoke har
 - [ ] Finish and rehearse 15-minute script, screenshots and failure/replay drill.
 - [ ] Rehearse clean-customer installation, orphan cleanup and approved static teardown.
 - [ ] Reconcile every acceptance criterion in [AGENTS.md](../AGENTS.md).
+
+## Autonomous platform hardening — 2026-10-13
+
+- Synchronized the Python environment to the SHA256-locked development requirements; SDK 0.1.0b4 and Identity 1.26.0 remain pinned. Fixed Docker dependency downloads using the existing public Microsoft proxy as an optional non-secret build argument. Normal defaults and npm lockfile URLs use public registries; TLS and integrity checks stay enabled.
+- Fixed FastAPI's packaged static-asset path after an actual browser failure. Built React with separate identity bundle, and inspected the gated empty dashboard. No synthesized findings, workflow progress or replay recording was used. Fixed duplicate MSAL initialization under React StrictMode.
+- Replaced unbounded event caches with bounded windows and Blob-backed cursor recovery. Added byte budgeting, contiguous-ID validation and ambiguous-append recovery. Cleanup now continues across interrupted runs, even when event persistence fails; each unresolved failure separately blocks new admission until its retry succeeds. Report persistence does not masquerade as a Sandbox workflow-completion event.
+- Confirmed deletion is persisted in run state before its event is emitted, so an exhausted event budget cannot permanently strand the cleanup slot. Event-delivery failure is recorded separately, surfaced by dashboard state polling, and disqualifies a run from replay. Concurrent report-state writes are serialized to prevent out-of-order Blob overwrites.
+- Added local tests for history eviction/resume, append acknowledgement loss, restart cleanup failure/retry, stale and duplicate C approval, wrong publication destination, invalid SSE cursors and unavailable replay. Fixed the smoke `finally` path so a local evidence-write error cannot skip deletion. Added the inert-by-default [smoke orphan tool](../scripts/cleanup_orphans.py), with exact scope/nonce/live-label checks and protected IDs; it has not performed a live deletion.
+- Added generated [report schemas](../workflows/schemas/) and a CI consistency check. Added a small [trusted FastAPI fixture](../demo-repo/README.md) with deliberate path traversal and harmless canary regression tests. The fixture was authored/read only; its code/tests were **not executed**, and no public fixture repository was created. Its expected failures and post-fix success remain Sandbox-only validation work.
+- Local results: **49 Python tests passed**, **1 Vitest test passed**, Ruff lint/format and TypeScript/Vite build passed, npm audit **0 advisories** after upgrading Vitest to 5.0.3. One Starlette warning notes future test-client migration from httpx. No test used cloud execution as a hidden fallback.
+- Built `aca-sandbox-demo:local` for Linux AMD64. [Container verification](../scripts/verify_container.py) passed using no network, no credentials, read-only filesystem, dropped capabilities and UID 10001: health/dashboard/assets 200, readiness 503 with unconfigured storage, anonymous read/create/remediate/cleanup APIs 401. Live execution remained disabled; the exact local test container was removed.
+- Updated README, plan, deployment, compatibility and architecture status. The original Terraform root/state/consumed plan remain untouched. M0 approval, GitHub owner/fixture/project-repository details, and networking/state choices are pending. No application image was pushed, no Container App deployed, and no GitHub resource created.
+- Added MIT license and contributor boundaries. Final editor diagnostics and `git diff --check` pass; nine documentation files have no missing local link targets. Rebuilt and rechecked the final container after the recovery fixes; removed its verification container and stopped the temporary loopback-only preview host. Saved foundation plan SHA256 remains `386fceff8f67a42d8e51f20d6bf521b59fc4244a5e8e3186d8cbe76178178622`.
 
 ## Initial discovery verification record (historical)
 
@@ -262,3 +291,36 @@ One real sandbox lifecycle/failed-prompt test and verified cleanup now exist. No
 - Finally deleted the exact created ID; direct GET **404** and final inventory verified. Cleanup **6.879s**, total **13.529s**. Only pre-existing `5bf17eda-250b-4c90-9cd6-bd44a5610851` remains **Stopped**, untouched. Azure CLI original subscription/tenant restored and verified. No second sandbox, group-credential change, public ingress, GitHub repository, CLI update or Terraform operation.
 - [Compatibility record](./compatibility.md#experimental-dynamic-workflow-attempt--2026-10-13) documents exact calls/commands, timeouts, results and next options; [sanitized live evidence](../.local/workflow-smoke-2026-10-13.json) preserves command outputs and inventories. Original saved-plan SHA-256 remains `386fceff8f67a42d8e51f20d6bf521b59fc4244a5e8e3186d8cbe76178178622`.
 - **Stopped after the test.** Next live attempt requires new sandbox authorization plus a reviewed compatible built-in image/CLI, potentially an explicitly approved pinned CLI update inside that disposable sandbox. No application development started. Broader Milestone 0/C publication gates remain open and are outside this attempt.
+
+## Approved M0-CLI97 result — 2026-10-14
+
+- Exact Sandbox `f53a4414-c37e-497d-a3a6-0ab6e8cc29d7`; one create request, SDK 0.1.0b4, `disk="copilot"`, existing connection `4e86451e-7ec1-434e-8b1b-cbfc4088960d`, 1 vCPU/2 GiB, no ports. Protected pre-existing ID remained Stopped before/after.
+- Official standalone CLI 1.0.97 checksum matched; installed only in disposable control directory. No existing image/executable or group credentials modified.
+- Registered `aca-viability-smoke`, actual workflow ID `4e40b2c4-9c13-4281-aad9-01a85ce160aa`; result `answer=pong`, `sum=5`, `branch=verified`. Six real boundary events and native workflow/subagent/result events captured. Auth succeeded automatically without `/login`.
+- Creation 1.681s, workflow command 8.732s, cleanup 1.375s, total 19.033s. Eight file polls; progress seen while runner still running at 4.618s, 7.233s and 8.540s. No runtime timeout occurred; timeout paths are not live-proven.
+- CLI warned that `read` is an unknown tool name in 1.0.97; available tools were disabled and actual subagent reported zero tool calls. Future invocations will use verified `view` with an explicit deny, retaining zero-tool AI where source is supplied directly.
+- Private sanitized evidence: [M0-CLI97](../.local/m0-cli97-evidence.json). Azure CLI was already on the approved subscription/tenant; no context switch needed. No other Sandbox creation, GitHub operation or static Azure mutation occurred.
+- Expanded M0 still requires real C failed-validation and approved publication tests. The successful minimal workflow unlocks corresponding implementation, not unapproved cloud execution.
+
+## Continued implementation after genuine workflow proof — 2026-10-14
+
+- Implemented [official SDK adapter](../backend/app/sandbox.py): managed identity, explicit existing credential binding, durable per-attempt ownership intent before create, cancellation drains in-flight SDK calls, trusted workflow upload, pinned disposable CLI, detached file polling, strict provenance and exact-ID owned-only cleanup. Orchestrator persists C report/diff before successful cleanup. Publication and live execution default off. Adapter runtime is **not yet Azure-tested**.
+- Added real [A](../workflows/security-review/extension.mjs), [B](../workflows/build-validation/extension.mjs), and [C](../workflows/remediation/extension.mjs) `defineWorkflow`/`joinSession` extensions. Deterministic helper performs pinned checkout, bounded fixture source review, hash-locked installation/build/pytest, conditional localhost health, fixed-source integrity and targeted recheck. C receives structured Copilot patch content limited to app.py; tests/dependencies cannot be modified. No fixture code was executed locally.
+- Implemented C's private publication path inside its Sandbox helper: explicit consent/validation gate, same granted provider token only, personal-owner check, collision refusal, clean source export/fresh commit, POST /user/repos, credential-helper push without token in URLs/files, private destination and remote SHA verification. Definite rejection and ambiguous/partial writes remain distinct; no overwrite, retry creation or deletion. **No GitHub write or real publication test occurred.** Extension `requestedEnvironmentVariables` is supported in the inspected SDK, but noninteractive permission granting is still unverified. No parent-environment scraping or alternate credentials.
+- Prepared [M0-C-FAIL harness](../scripts/smoke_test_remediation.py) and [exact scope](./pending-approvals.md#m0-c-fail--prepared-not-executed). It uploads the trusted fixture and adds a deliberate failing pytest case inside one future Sandbox, then proves the real C AI step and no-publication branch. Plan-only invocation made zero Azure calls. New approval requested and pending; not executed.
+- SDK egress schema and Microsoft Learn reviewed. Adapter supplies create-time default Deny/Full inspection with explicit GitHub/Copilot/PyPI hosts. This policy is **prepared, not live-validated**; the approved M0-CLI97 nonce test had no new egress policy. Persistent group-wide IaC enforcement remains unsupported/unverified and is not claimed.
+- Read-only Storage verification: Enabled public network, Allow default, HTTPS/TLS1.2, no public blobs/shared keys. HTTPS reaches Blob; signed-in operator OAuth read lacks data permissions. UAMI `97766d42-5dbe-4fe1-b99a-41366f515c34` has existing Data Contributor at reports/events/diffs/replay; group Data Owner, AcrPull and Monitoring Metrics Publisher also read back. No networking, policy or RBAC fixes attempted.
+- Applied installed terraform-builder and documentation-keeper guidance. Added optional [application module](../infrastructure/terraform/modules/application/) under the project-required path: existing UAMI/ACR, digest-only image, single revision, min/max 1, HTTPS, health/readiness/startup probes, non-secret settings. Null application preserves foundation-only mode. Microsoft Learn and AzureRM 4.81.0 runtime schema grounded fields. `init -lockfile=readonly`, `validate`, fmt and **6 offline Terraform tests passed**. No apply, real replacement plan, provider-lock change or existing static resource mutation.
+- Entra design uses MSAL authorization code + PKCE and strict backend v2 delegated JWT authorization. Existing-registration EasyAuth without a secret uses implicit flow per Microsoft Learn, so no implicit flow or secret is added. Actual customer registration/consent choice is pending, as are owner/fixture/project GitHub details and remote-state choice; requested asynchronously. New registrations have not been created.
+- Local verification: **61 Python tests passed**, including SDK cancellation drain, exact ownership mismatch, ambiguous create, event-store failure cleanup, failed publication validation, collision and remote-SHA mismatch. No test invokes real cloud/git publication. Ruff and syntax checks pass. Updated CI to check workflow code. Application image rebuild found excluded workflow files, fixed Docker allowlist; direct package downloads hit the known environment TLS issue and rebuild uses the documented non-secret Microsoft package proxies. Final image verification is in progress.
+
+
+## Final local verification and approval handoff — 2026-10-14
+
+- **64 Python tests pass** (one existing Starlette/httpx deprecation warning). Added a regression proving one Sandbox ownership/deletion failure cannot prevent peer cleanup. Cleanup runs independently for each durable ownership record, preserves failed records, requires exact-ID absence, and refuses mismatched ownership. These failure cases use explicit unit doubles, not live Azure resources.
+- Latest application image rebuilt successfully after all runtime edits. Local image manifest list: `sha256:bc2371938875b462b56023d99cd9452520c333354ee49df8aa38644f13ba1d4c`. Network-isolated, read-only container check passed: UID 10001, dashboard/three assets/health HTTP 200, unconfigured readiness 503, anonymous operational routes 401, live execution disabled. Exact local verification container removed. Image has not been pushed to ACR.
+- Structured lifecycle telemetry now emits an allowlisted JSON record to stdout for ACA/Log Analytics diagnostics, excluding headers, prompts, report bodies and credentials. Tests verify exclusion. Direct Application Insights SDK ingestion and Azure telemetry delivery remain unverified.
+- Dashboard now retains real stage payloads, separates step events from logs, shows test counts/health, and marks partial publication. Fix remains disabled until publication is configured. Frontend build/test passed earlier in this slice; no real Azure dashboard session or synthetic replay is claimed.
+- Prepared GitHub Actions OIDC build/plan/apply workflow enforces environment review gates, requires an approved Azure remote backend, binds the app image digest, saves the exact plan/hash, and applies that artifact without replanning. Actionlint passed. GitHub repository, environments, OIDC trust/grants and backend are not configured, and no Actions run occurred.
+- Rechecked the original consumed foundation plan SHA256: `386fceff8f67a42d8e51f20d6bf521b59fc4244a5e8e3186d8cbe76178178622` (unchanged). No additional Sandbox, Azure apply, RBAC/network/credential change or GitHub write occurred after M0-CLI97.
+- **External gates:** [M0-C-FAIL approval](./pending-approvals.md#m0-c-fail--prepared-not-executed); dedicated GitHub owner/vetted public fixture/project repository; Entra registration and remote-state choices; then exact deployment/publication plans and approvals. Full A/B/C, managed-identity data access, authenticated Azure dashboard/SSE/replay and demo rehearsal remain open. Project is **not complete**.

@@ -1,0 +1,143 @@
+{
+  "$defs": {
+    "Check": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "maxLength": 100,
+          "title": "Name",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "pending",
+            "running",
+            "passed",
+            "failed",
+            "skipped",
+            "timed_out"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "exit_code": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Exit Code"
+        },
+        "duration_ms": {
+          "minimum": 0,
+          "title": "Duration Ms",
+          "type": "integer"
+        },
+        "detail": {
+          "default": "",
+          "maxLength": 4000,
+          "title": "Detail",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "status",
+        "duration_ms"
+      ],
+      "title": "Check",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "commit_sha": {
+      "pattern": "^[0-9a-f]{40}$",
+      "title": "Commit Sha",
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "pending",
+        "running",
+        "passed",
+        "failed",
+        "skipped",
+        "timed_out"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "checks": {
+      "items": {
+        "$ref": "#/$defs/Check"
+      },
+      "maxItems": 100,
+      "title": "Checks",
+      "type": "array"
+    },
+    "publication_status": {
+      "enum": [
+        "skipped",
+        "failed",
+        "partial",
+        "published"
+      ],
+      "title": "Publication Status",
+      "type": "string"
+    },
+    "fixed_repository_url": {
+      "anyOf": [
+        {
+          "pattern": "^https://github\\.com/[A-Za-z0-9-]{1,39}/[A-Za-z0-9_.-]{1,100}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Fixed Repository Url"
+    },
+    "fixed_commit_sha": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{40}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Fixed Commit Sha"
+    },
+    "diff": {
+      "maxLength": 100000,
+      "title": "Diff",
+      "type": "string"
+    },
+    "limitations": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 30,
+      "title": "Limitations",
+      "type": "array"
+    }
+  },
+  "required": [
+    "commit_sha",
+    "status",
+    "checks",
+    "publication_status",
+    "diff",
+    "limitations"
+  ],
+  "title": "RemediationReport",
+  "type": "object"
+}

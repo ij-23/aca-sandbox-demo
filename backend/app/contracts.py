@@ -1,4 +1,5 @@
 """Strict API contracts, independent of the cloud transport."""
+
 from datetime import UTC, datetime
 from typing import Annotated, Any, Literal
 from uuid import UUID
@@ -82,7 +83,10 @@ class RemediationReport(StrictModel):
     status: Outcome
     checks: list[Check] = Field(max_length=100)
     publication_status: Literal["skipped", "failed", "partial", "published"]
-    fixed_repository_url: str | None = None
+    fixed_repository_url: (
+        Annotated[str, StringConstraints(pattern=r"^https://github\.com/[A-Za-z0-9-]{1,39}/[A-Za-z0-9_.-]{1,100}$")]
+        | None
+    ) = None
     fixed_commit_sha: SHA | None = None
     diff: str = Field(max_length=100000)
     limitations: list[str] = Field(max_length=30)
@@ -94,6 +98,9 @@ class RemediationReport(StrictModel):
                 raise ValueError("Published result requires passed validation and verified destination/SHA")
             if not self.checks or any(c.status != "passed" for c in self.checks):
                 raise ValueError("All required validation checks must pass before publication")
+            required = {"build", "pytest", "localhost.health", "targeted.recheck", "source.integrity"}
+            if not required.issubset({c.name for c in self.checks}) or any(c.exit_code != 0 for c in self.checks):
+                raise ValueError("Published result lacks required successful validation exit codes")
         return self
 
 

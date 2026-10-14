@@ -1,5 +1,25 @@
 # Compatibility ledger
 
+## Verified M0-CLI97 — 2026-10-14
+
+**Passed genuine Dynamic Workflow execution inside ACA.** The [approved test](./pending-approvals.md) created one built-in `copilot` Sandbox with the existing provider connection, downloaded only the approved checksum-pinned official 1.0.97 into its disposable directory, and deleted that Sandbox with exact-ID HTTP 404 verification. Detailed timings and IDs are in [progress](./progress.md#approved-m0-cli97-result--2026-10-14); private [sanitized evidence](../.local/m0-cli97-evidence.json) contains actual commands/results. Older sections below are historical and superseded where stated.
+
+Verified calls: `begin_create_sandbox(...).result(timeout=90)`, `get`, `exec`, `write_file`, `read_file`, `delete`, `list_sandboxes`, and exact-ID `get`. Verified invocation: `GITHUB_COPILOT_PROMPT_MODE_EXTENSIONS=true copilot --experimental --no-auto-update --no-custom-instructions --disable-builtin-mcps --available-tools=read --deny-tool=read workflow run aca-viability-smoke --args @input.json --result-file result.json --output-format json`. The CLI warns `read` is unknown in 1.0.97 (actual tool is `view`); the observed subagent used zero tools. No silent prompt substitution or login occurred.
+
+`defineWorkflow`, `joinSession({workflows})`, `ctx.step`, `ctx.agent`, `ctx.phase`, `ctx.log`, `ctx.runId` and `ctx.signal` worked. Returned deterministic sum 5, genuine AI pong and verified actual-result branch, three timed results and six boundary events. Native JSON output includes `session.extensions_loaded`, `workflow.run_started`, `workflow.run_updated`, `subagent.started/completed`, `workflow.run_settled`, `workflow.result`, and message deltas. SDK `exec` returns completed results; detached execution plus SDK `read_file` polling **did** retrieve progress while running. This proves polling, not native SDK exec streaming.
+
+Current Storage: Enabled public network, Allow default rule, HTTPS/TLS1.2, no public blobs/shared keys. Endpoint reachable; operator OAuth read denied by authorization. No networking fix attempted. App UAMI runtime access remains untested. CLI extension secret access and same-PAT GitHub publication remain separate gates; the smoke requested no secret environment access.
+
+## Prepared compatible-CLI test and local platform — 2026-10-13
+
+The [M0-CLI97 request](./pending-approvals.md) is awaiting approval. No additional Sandbox has been created. The [harness](../scripts/smoke_test_sandbox.py) preserves the verified `disk="copilot", connections=[existing_id]` binding and accepts `--expected-cli-version 1.0.97 --pinned-cli`. The opt-in helper downloads the official Linux x64 standalone archive to a fresh disposable control directory, verifies SHA256 `07f3f63cb361e911268e8a4b010e06eeced8d4f2d898d13a8180273e34aeff3f`, and invokes that binary without changing the image/system installation. Source: [official release](https://github.com/github/copilot-cli/releases/tag/v1.0.97). Automatic updates stay disabled. No downloaded CLI or AI operation has been executed locally.
+
+Static source confirms `defineWorkflow`, `joinSession({workflows})` and direct workflow dispatch in 1.0.97. It does **not** establish entitlement, successful registration inside ACA, agent results, extension environment permissions or concurrent file polling. The smoke requests no secret environment access. C's ability to perform GitHub writes with the same injected PAT remains a separate explicit gate; do not bypass extension environment restrictions.
+
+Independent application checks now pass: 49 Python tests, one frontend test, TypeScript/Vite build, Ruff, JSON-schema consistency, npm audit (zero advisories), AMD64 application image build and an isolated local container check. The container ran with network disabled, no Azure identity, UID 10001 and read-only filesystem: dashboard/assets/health 200, unconfigured readiness 503, anonymous operations 401. The owned container was removed. Browser inspection found and fixed the backend static-asset directory mismatch. These are platform results, not Azure Dynamic Workflow evidence.
+
+SDK exec remains a completed-result interface. The prepared detached runner polls JSONL/status files; genuine progress visibility is still unverified. The platform SSE layer persists before delivery, keeps an eight-run/256-event-per-run memory window, and reads older events from Blob for resume. Stored event logs have a 15 MiB write budget below the 16 MiB read cap. Ambiguous append recovery, ring-buffer eviction/resume, cleanup retry/restart, stale consent and wrong destination rejection are covered by unit-test doubles. Blob network/RBAC access, Entra login and actual A/B/C telemetry remain unverified in Azure.
+
 ## Current comparison: user-reported CLI 1.0.97 — 2026-10-13
 
 **Do not generalize the 1.0.83 finding to every current ACA Copilot sandbox.** The user reports CLI **1.0.97** in a manually created GitHub Copilot sandbox. The official 1.0.97 package supports the required API; the exact sandbox/executable behind that observation still needs identification.
@@ -24,7 +44,7 @@ The [official Linux x64 1.0.97 artifact](https://github.com/github/copilot-cli/r
 - Bundled SDK sends `session.workflow.run` requests. CLI `cli-main.js` dispatches `case "workflow run"` to `runWorkflowRunCommand`, calls `sessionClient.workflow.run`, and implements result-file handling and `workflow.result` output.
 - Project extension trust checks recognize `GITHUB_COPILOT_PROMPT_MODE_EXTENSIONS=true`. Use it only for this project's reviewed extension.
 
-**Result:** 1.0.97 has the required Dynamic Workflow API and command implementation. Authentication, extension loading and an actual workflow run with that version remain unverified. The known creation-path difference and possible interactive executable/automatic-update differences are hypotheses, not a proven explanation for 1.0.83 versus 1.0.97. The user was asked for the sandbox ID/portal URL that showed 1.0.97. Do not upgrade or create another sandbox until the correct target is identified and the required approval is obtained. The reusable harness still rejects versions other than 1.0.83; revise that reviewed-version gate before a future approved test, rather than treating it as service incompatibility.
+**Result:** 1.0.97 has the required Dynamic Workflow API and command implementation. Authentication, extension loading and an actual workflow run with that version remain unverified. The known creation-path difference and possible interactive executable/automatic-update differences are hypotheses, not a proven explanation for 1.0.83 versus 1.0.97. The user was asked for the sandbox ID/portal URL that showed 1.0.97. Do not upgrade or create another sandbox until the correct target is identified and the required approval is obtained. The reusable harness now requires an explicitly reviewed expected version (default 1.0.97) and optionally uses a checksum-pinned 1.0.97 binary in its disposable control directory. This is a prepared path, not a live test result; see the pending approval below.
 
 ## Historical 1.0.83 conclusion
 
@@ -344,3 +364,63 @@ GitHub's public `/meta` returned Copilot domains `*.github.com`, `*.githubuserco
 - **S22:** [Microsoft Learn — Container Apps quotas](https://learn.microsoft.com/en-us/azure/container-apps/quotas); target regional `Microsoft.App/locations/swedencentral/usages?api-version=2026-07-01` read-only response.
 
 Staging portal documentation is explicitly identified above. Treat it as published guidance requiring production-runtime confirmation, not proof of deployed behavior.
+
+## Post-smoke runtime/deployment implementation — 2026-10-14
+
+The real adapter now uses the verified creation/binding, upload/read/exec and
+exact-ID deletion APIs. It installs the same pinned 1.0.97 only in owned Sandbox
+control directories. A/B/C extensions use the verified definition/registration,
+step/agent and JSON result APIs. Production transport polls a trusted JSONL journal;
+terminal command output is captured on command completion, while real workflow
+boundaries are observable during execution. Native CLI logs are sanitized inside
+the Sandbox; only a bounded tail is delivered. This adapter and the full workflows
+remain **locally tested but not exercised in Azure**.
+
+The inspected official 1.0.97 extension declaration documents
+`requestedEnvironmentVariables: ["COPILOT_GITHUB_TOKEN"]`: sensitive variables are
+stripped at extension startup, and the CLI requests explicit permission before
+returning granted variables. Denial prevents loading. The exact noninteractive
+approval mechanism remains unverified. C requests this only when publication is
+authorized/enabled, never scrapes another process or copies a PAT into a file.
+Therefore Copilot authentication success still does not establish C publishing
+capability. No GitHub repository API or push has been tested with the group PAT.
+The prepared M0-C-FAIL test does not request credential access for publication.
+It uses Copilot service traffic but makes no repository API/clone/push calls.
+
+Official [repository REST documentation](https://docs.github.com/en/rest/repos/repos#create-a-repository-for-the-authenticated-user)
+confirms POST /user/repos, private=true and auto_init=false. Prepared publishing
+checks the personal /user identity, destination availability and response identity,
+creates a fresh sanitized-source commit, pushes with a credential helper reading
+only the granted environment variable, then verifies private identity and remote
+refs/heads/main SHA. X-Accepted-GitHub-Permissions is captured without token values.
+Fine-grained endpoint permissions and actual push still need the approved live test.
+
+SDK 0.1.0b4 exports EgressPolicy, EgressRule, EgressRuleMatch and EgressRuleAction
+from azure.containerapps.sandbox (not a models submodule). Their installed
+constructors support default_action, traffic_inspection and host-match rules.
+The adapter prepares default Deny/Full inspection with the documented GitHub,
+Copilot and PyPI host candidates. No policy is changed in the existing group;
+this is a future create-time policy and is not yet live-proven. Microsoft Learn
+[documents create-time/runtime scopes](https://learn.microsoft.com/en-us/azure/container-apps/sandboxes-egress-policies),
+not a persistent group-wide Terraform policy contract. That original requirement
+remains unresolved, rather than being silently claimed as satisfied.
+
+Application Terraform uses locked AzureRM 4.81.0's inspected container_app schema:
+UAMI image pull, digest image, HTTPS ingress, single revision, one replica and
+explicit probes. Default null application input keeps foundation-only behavior.
+Validation and six offline tests pass; no application plan/apply or auth registration
+is claimed. PKCE + delegated JWT verification is prepared; Microsoft Learn confirms
+secret-free EasyAuth login uses implicit flow, which this app does not adopt.
+
+
+### Extension permission boundary: additional static evidence
+
+Read-only inspection of the official 1.0.97 release confirms that the CLI classifies
+requested filtered variables, submits an `extension-env-access` permission request,
+and rejects extension loading unless its result is `approved`. Only then does it
+resolve the granted variables and register workflows. The SDK writes granted
+values into the requesting extension's environment before `joinSession` resolves.
+This agrees with the official [extension documentation](https://github.com/github/copilot-sdk/blob/main/nodejs/docs/extensions.md).
+Project-extension trust alone is insufficient evidence of this grant. The prepared
+noninteractive runner's grant remains unverified; no blanket permission flag,
+credential scraping, token file or alternate identity has been introduced.

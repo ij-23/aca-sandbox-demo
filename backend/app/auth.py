@@ -1,4 +1,5 @@
 """Entra access-token validation. Proxy principal headers are never trusted."""
+
 import asyncio
 import time
 from dataclasses import dataclass
@@ -41,15 +42,21 @@ class EntraVerifier:
                 if current >= self.expires or (missing and current - self.last_fetch > 60):
                     self.last_fetch = current
                     async with httpx.AsyncClient(timeout=10, follow_redirects=False, trust_env=False) as client:
-                        response = await client.get(f"https://login.microsoftonline.com/{self.settings.tenant_id}/discovery/v2.0/keys")
+                        response = await client.get(
+                            f"https://login.microsoftonline.com/{self.settings.tenant_id}/discovery/v2.0/keys"
+                        )
                         response.raise_for_status()
                         self.keys = response.json()["keys"]
                     self.expires = current + 3600
                 key = next(k for k in self.keys if k.get("kid") == meta["kid"])
-            claims = jwt.decode(token, jwt.PyJWK(key).key, algorithms=["RS256"],
-                                audience=self.settings.api_client_id,
-                                issuer=f"https://login.microsoftonline.com/{self.settings.tenant_id}/v2.0",
-                                options={"require": ["exp", "iat", "nbf", "oid", "tid", "aud", "iss", "scp"]})
+            claims = jwt.decode(
+                token,
+                jwt.PyJWK(key).key,
+                algorithms=["RS256"],
+                audience=self.settings.api_client_id,
+                issuer=f"https://login.microsoftonline.com/{self.settings.tenant_id}/v2.0",
+                options={"require": ["exp", "iat", "nbf", "oid", "tid", "aud", "iss", "scp"]},
+            )
             if claims["tid"] != self.settings.tenant_id or "access_as_user" not in claims["scp"].split():
                 raise ValueError("Invalid tenant or delegated scope")
             if claims["oid"] not in self.settings.authorized_users:

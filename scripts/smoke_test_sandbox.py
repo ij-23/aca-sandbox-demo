@@ -34,6 +34,7 @@ class SmokeDeadline(BaseException):
 @contextmanager
 def deadline(seconds):
     """Bound synchronous SDK calls on macOS/Linux, including cleanup separately."""
+
     def expired(_signum, _frame):
         raise SmokeDeadline("Local smoke deadline exceeded")
 
@@ -64,8 +65,11 @@ def text_file(sandbox, path, limit=16384):
 def owned_records(group, labels):
     # Documentation disagrees on selector/labels keywords; list without either
     # and require exact ownership labels locally before considering deletion.
-    return [item for item in group.list_sandboxes()
-            if all(getattr(item, "labels", {}).get(k) == v for k, v in labels.items())]
+    return [
+        item
+        for item in group.list_sandboxes()
+        if all(getattr(item, "labels", {}).get(k) == v for k, v in labels.items())
+    ]
 
 
 def cleanup(group, sandbox, labels, creation_returned, budget=60, protected_ids=()):
@@ -111,22 +115,28 @@ def read_events(sandbox, control, nonce, *, final=False):
     lines = text.split("\n")[:-1]  # Ignore a concurrently written partial line.
     events = [json.loads(line) for line in lines if line]
     for event in events:
-        if (set(event) != {"timestamp", "workflow_run_id", "nonce", "step", "status"}
-                or event["nonce"] != nonce
-                or event["step"] not in {"prepare", "agent", "verify"}
-                or event["status"] not in {"running", "passed", "failed"}
-                or not re.fullmatch(r"[a-zA-Z0-9_-]{1,128}", event["workflow_run_id"])
-                or not re.fullmatch(r"[0-9T:.Z+-]{20,35}", event["timestamp"])):
+        if (
+            set(event) != {"timestamp", "workflow_run_id", "nonce", "step", "status"}
+            or event["nonce"] != nonce
+            or event["step"] not in {"prepare", "agent", "verify"}
+            or event["status"] not in {"running", "passed", "failed"}
+            or not re.fullmatch(r"[a-zA-Z0-9_-]{1,128}", event["workflow_run_id"])
+            or not re.fullmatch(r"[0-9T:.Z+-]{20,35}", event["timestamp"])
+        ):
             raise ValueError("Unexpected workflow event")
     return events
 
 
 def validate_result(result, nonce, events):
-    if (set(result) != {"nonce", "answer", "sum", "branch", "workflow_run_id", "steps"}
-            or result["nonce"] != nonce or result["answer"] != "pong"
-            or result["sum"] != 5 or result["branch"] != "verified"
-            or not isinstance(result["workflow_run_id"], str)
-            or not re.fullmatch(r"[a-zA-Z0-9_-]{1,128}", result["workflow_run_id"])):
+    if (
+        set(result) != {"nonce", "answer", "sum", "branch", "workflow_run_id", "steps"}
+        or result["nonce"] != nonce
+        or result["answer"] != "pong"
+        or result["sum"] != 5
+        or result["branch"] != "verified"
+        or not isinstance(result["workflow_run_id"], str)
+        or not re.fullmatch(r"[a-zA-Z0-9_-]{1,128}", result["workflow_run_id"])
+    ):
         raise ValueError("Invalid workflow result or provenance")
     expected = [(step, status) for step in ("prepare", "agent", "verify") for status in ("running", "passed")]
     if [(e["step"], e["status"]) for e in events] != expected:
@@ -136,14 +146,20 @@ def validate_result(result, nonce, events):
     steps = result["steps"]
     if not isinstance(steps, list) or len(steps) != 3:
         raise ValueError("Missing step results")
-    outputs = [{"sum": 5, "observation_window_ms": 3000},
-               {"nonce": nonce, "answer": "pong", "sum": 5},
-               {"branch": "verified", "reason": "agent_matches_deterministic_result"}]
-    for step, name, output in zip(steps, ("prepare", "agent", "verify"), outputs):
-        if (set(step) != {"step", "status", "duration_ms", "result"}
-                or step["step"] != name or step["status"] != "passed"
-                or type(step["duration_ms"]) is not int or not 0 <= step["duration_ms"] <= 210000
-                or step["result"] != output):
+    outputs = [
+        {"sum": 5, "observation_window_ms": 3000},
+        {"nonce": nonce, "answer": "pong", "sum": 5},
+        {"branch": "verified", "reason": "agent_matches_deterministic_result"},
+    ]
+    for step, name, output in zip(steps, ("prepare", "agent", "verify"), outputs, strict=True):
+        if (
+            set(step) != {"step", "status", "duration_ms", "result"}
+            or step["step"] != name
+            or step["status"] != "passed"
+            or type(step["duration_ms"]) is not int
+            or not 0 <= step["duration_ms"] <= 210000
+            or step["result"] != output
+        ):
             raise ValueError("Invalid step result")
 
 
@@ -151,11 +167,21 @@ def perform(group, path, scope, connection_id, extension=EXTENSION, *, expected_
     UUID(connection_id)
     nonce = uuid4().hex
     labels = {"owner": OWNER, "smoke-run": nonce}
-    evidence = {"run_id": nonce, "group": scope, "sdk_version": SDK_VERSION,
-                "disk": "copilot", "credential_connection_id": connection_id,
-                "expected_cli_version": expected_cli_version, "pinned_cli_requested": pinned_cli,
-                "labels": labels, "status": "running", "create_requests": 0,
-                "cleanup": "not_required", "stage": "preflight", "observations": []}
+    evidence = {
+        "run_id": nonce,
+        "group": scope,
+        "sdk_version": SDK_VERSION,
+        "disk": "copilot",
+        "credential_connection_id": connection_id,
+        "expected_cli_version": expected_cli_version,
+        "pinned_cli_requested": pinned_cli,
+        "labels": labels,
+        "status": "running",
+        "create_requests": 0,
+        "cleanup": "not_required",
+        "stage": "preflight",
+        "observations": [],
+    }
     sandbox = None
     creation_requested = creation_returned = False
     before = set()
@@ -188,9 +214,15 @@ def perform(group, path, scope, connection_id, extension=EXTENSION, *, expected_
             checkpoint("create")
             t = time.monotonic()
             sandbox = group.begin_create_sandbox(
-                disk="copilot", connections=[connection_id], cpu="1000m", memory="2048Mi",
-                labels=labels, ports=[], auto_suspend_seconds=300,
-                polling_timeout=80, polling_interval=2,
+                disk="copilot",
+                connections=[connection_id],
+                cpu="1000m",
+                memory="2048Mi",
+                labels=labels,
+                ports=[],
+                auto_suspend_seconds=300,
+                polling_timeout=80,
+                polling_interval=2,
             ).result(timeout=90)
             creation_returned = True
             evidence["sandbox_id"] = sandbox.sandbox_id
@@ -221,8 +253,16 @@ def perform(group, path, scope, connection_id, extension=EXTENSION, *, expected_
                 raise RuntimeError("Provider credential was not injected")
             if not all(flag in capabilities["workflow_help"]["stdout"] for flag in ("--args", "--result-file")):
                 raise RuntimeError("Experimental direct Dynamic Workflow command not exposed")
-            if not all(flag in capabilities["help"]["stdout"] for flag in
-                       ("--no-auto-update", "--no-custom-instructions", "--disable-builtin-mcps", "--available-tools", "--deny-tool")):
+            if not all(
+                flag in capabilities["help"]["stdout"]
+                for flag in (
+                    "--no-auto-update",
+                    "--no-custom-instructions",
+                    "--disable-builtin-mcps",
+                    "--available-tools",
+                    "--deny-tool",
+                )
+            ):
                 raise RuntimeError("Required CLI safety flags unavailable")
             checkpoint("upload")
             source = extension.read_text()
@@ -234,9 +274,11 @@ def perform(group, path, scope, connection_id, extension=EXTENSION, *, expected_
             sandbox.write_file(f"{control}/input.json", json.dumps({"nonce": nonce}))
             sandbox.write_file(f"{control}/smoke-events.jsonl", "")
             sandbox.write_file(f"{control}/status.json", json.dumps({"state": "pending"}))
-            launch = ("import subprocess; subprocess.Popen(['python3','runner.py','workflow'], "
-                      "stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, "
-                      "start_new_session=True); print('started')")
+            launch = (
+                "import subprocess; subprocess.Popen(['python3','runner.py','workflow'], "
+                "stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, "
+                "start_new_session=True); print('started')"
+            )
             checkpoint("workflow")
             t = time.monotonic()
             execute(f"cd {control} && python3 -c {shlex.quote(launch)}")
@@ -250,10 +292,15 @@ def perform(group, path, scope, connection_id, extension=EXTENSION, *, expected_
                 evidence["poll_count"] += 1
                 if len(events) != last_count:
                     during = status["state"] == after["state"] == "running"
-                    evidence["observations"].append({"elapsed_seconds": round(time.monotonic()-t, 3),
-                        "event_count": len(events), "runner_running_before_and_after": during,
-                        "last_step": events[-1]["step"] if events else None,
-                        "last_status": events[-1]["status"] if events else None})
+                    evidence["observations"].append(
+                        {
+                            "elapsed_seconds": round(time.monotonic() - t, 3),
+                            "event_count": len(events),
+                            "runner_running_before_and_after": during,
+                            "last_step": events[-1]["step"] if events else None,
+                            "last_status": events[-1]["status"] if events else None,
+                        }
+                    )
                     if during and events:
                         evidence["live_progress_observed"] = True
                     last_count = len(events)
@@ -276,7 +323,9 @@ def perform(group, path, scope, connection_id, extension=EXTENSION, *, expected_
             validate_result(result, nonce, evidence["events"])
             evidence["result"] = result
             evidence["authentication"] = "workflow_agent_succeeded_without_login"
-            evidence["output_transport"] = "SDK file polling during detached workflow; exec itself returns completed output"
+            evidence["output_transport"] = (
+                "SDK file polling during detached workflow; exec itself returns completed output"
+            )
             evidence["status"] = "passed"
             checkpoint("complete")
     except BaseException as exc:
@@ -284,15 +333,27 @@ def perform(group, path, scope, connection_id, extension=EXTENSION, *, expected_
         evidence["error_type"] = type(exc).__name__
         # Only locally defined fixed messages are safe to retain.
         if type(exc) in (RuntimeError, ValueError, TimeoutError) and exc.args:
-            allowed = ("Experimental direct Dynamic Workflow command not exposed", "Genuine workflow command failed",
-                       "Provider credential was not injected", "Copilot version differs from explicitly reviewed target",
-                       "Invalid workflow result or provenance", "Missing real workflow boundaries", "Invalid step result",
-                       "Workflow observation deadline exceeded", "Required CLI safety flags unavailable")
+            allowed = (
+                "Experimental direct Dynamic Workflow command not exposed",
+                "Genuine workflow command failed",
+                "Provider credential was not injected",
+                "Copilot version differs from explicitly reviewed target",
+                "Invalid workflow result or provenance",
+                "Missing real workflow boundaries",
+                "Invalid step result",
+                "Workflow observation deadline exceeded",
+                "Required CLI safety flags unavailable",
+            )
             if str(exc) in allowed:
                 evidence["error"] = str(exc)
     finally:
         if creation_requested:
-            checkpoint("cleanup")
+            # A full/read-only local disk must not bypass cloud cleanup.
+            try:
+                checkpoint("cleanup")
+            except OSError:
+                evidence["evidence_persistence_failed"] = True
+                evidence["status"] = "failed"
             t = time.monotonic()
             try:
                 with deadline(100):
@@ -319,16 +380,24 @@ def parser():
     p.add_argument("--resource-group", required=True)
     p.add_argument("--sandbox-group", required=True)
     p.add_argument("--region", required=True)
-    p.add_argument("--credential-connection-id", help="Existing Ready github-copilot group connection UUID (not a token)")
-    p.add_argument("--expected-cli-version", default="1.0.97", help="Exact statically reviewed version; never auto-update")
-    p.add_argument("--pinned-cli", action="store_true", help="Only with approval: download checksum-pinned official 1.0.97 into this disposable sandbox's control directory")
+    p.add_argument(
+        "--credential-connection-id", help="Existing Ready github-copilot group connection UUID (not a token)"
+    )
+    p.add_argument(
+        "--expected-cli-version", default="1.0.97", help="Exact statically reviewed version; never auto-update"
+    )
+    p.add_argument(
+        "--pinned-cli",
+        action="store_true",
+        help="Only with approval: download checksum-pinned official 1.0.97 into this disposable sandbox's control directory",
+    )
     p.add_argument("--execute", action="store_true", help="Create/run/delete a paid sandbox only after approval")
     p.add_argument("--confirm-group", help="Exact approved Sandbox Group ARM ID")
     p.add_argument("--output", type=Path, default=ROOT / ".local/smoke-evidence.json")
     return p
 
 
-def main(argv=None):
+def main(argv=None, *, performer=perform):
     args = parser().parse_args(argv)
     UUID(args.subscription_id)
     UUID(args.tenant_id)
@@ -341,12 +410,25 @@ def main(argv=None):
     for value in (args.resource_group, args.sandbox_group):
         if not re.fullmatch(r"[a-zA-Z0-9_-]{1,90}", value):
             raise ValueError("Invalid resource name")
-    scope = (f"/subscriptions/{args.subscription_id}/resourceGroups/{args.resource_group}"
-             f"/providers/Microsoft.App/sandboxGroups/{args.sandbox_group}")
+    scope = (
+        f"/subscriptions/{args.subscription_id}/resourceGroups/{args.resource_group}"
+        f"/providers/Microsoft.App/sandboxGroups/{args.sandbox_group}"
+    )
     if not args.execute:
-        print(json.dumps({"mode": "plan_only", "scope": scope, "disk": "copilot",
-                          "action": "create one sandbox, run real workflow, collect result, delete",
-                          "credential_connection_id": args.credential_connection_id, "azure_calls": 0}))
+        print(
+            json.dumps(
+                {
+                    "mode": "plan_only",
+                    "scope": scope,
+                    "disk": "copilot",
+                    "action": "create one sandbox, run real workflow, collect result, delete",
+                    "credential_connection_id": args.credential_connection_id,
+                    "expected_cli_version": args.expected_cli_version,
+                    "pinned_cli_requested": args.pinned_cli,
+                    "azure_calls": 0,
+                }
+            )
+        )
         return 0
     if args.confirm_group != scope:
         raise ValueError("--confirm-group must match the approved ARM scope exactly")
@@ -364,35 +446,72 @@ def main(argv=None):
     from azure.core.pipeline.transport import RequestsTransport
     from azure.identity import DefaultAzureCredential
 
-    account = json.loads(subprocess.check_output(['az', 'account', 'show', '-o', 'json'], timeout=20))
-    if account['id'] != args.subscription_id or account['tenantId'] != args.tenant_id:
+    account = json.loads(subprocess.check_output(["az", "account", "show", "-o", "json"], timeout=20))
+    if account["id"] != args.subscription_id or account["tenantId"] != args.tenant_id:
         raise ValueError("Select the approved cached Azure CLI subscription/tenant before execution")
-    metadata = subprocess.run(['aca', 'sandboxgroup', 'credential', 'list',
-        '--subscription', args.subscription_id, '--resource-group', args.resource_group,
-        '--group', args.sandbox_group, '--region', args.region, '-o', 'json'],
-        capture_output=True, text=True, timeout=40)
+    metadata = subprocess.run(
+        [
+            "aca",
+            "sandboxgroup",
+            "credential",
+            "list",
+            "--subscription",
+            args.subscription_id,
+            "--resource-group",
+            args.resource_group,
+            "--group",
+            args.sandbox_group,
+            "--region",
+            args.region,
+            "-o",
+            "json",
+        ],
+        capture_output=True,
+        text=True,
+        timeout=40,
+    )
     if metadata.returncode != 0:
         raise RuntimeError("Read-only credential status check failed; output withheld")
-    if not any(r['id'] == args.credential_connection_id and r['type'] == 'github-copilot'
-               and r['state'] == 'Ready' for r in json.loads(metadata.stdout)):
+    if not any(
+        r["id"] == args.credential_connection_id and r["type"] == "github-copilot" and r["state"] == "Ready"
+        for r in json.loads(metadata.stdout)
+    ):
         raise ValueError("Expected Ready github-copilot credential connection not found")
     credential = DefaultAzureCredential(
-        exclude_environment_credential=True, exclude_workload_identity_credential=True,
-        exclude_managed_identity_credential=True, exclude_shared_token_cache_credential=True,
-        exclude_visual_studio_code_credential=True, exclude_powershell_credential=True,
-        exclude_developer_cli_credential=True, exclude_interactive_browser_credential=True,
-        exclude_broker_credential=True, process_timeout=15)
-    group = SandboxGroupClient(endpoint_for_region(args.region), credential,
-                               subscription_id=args.subscription_id,
-                               resource_group=args.resource_group,
-                               sandbox_group=args.sandbox_group,
-                               transport=RequestsTransport(connection_timeout=10, read_timeout=90), retry_total=0)
+        exclude_environment_credential=True,
+        exclude_workload_identity_credential=True,
+        exclude_managed_identity_credential=True,
+        exclude_shared_token_cache_credential=True,
+        exclude_visual_studio_code_credential=True,
+        exclude_powershell_credential=True,
+        exclude_developer_cli_credential=True,
+        exclude_interactive_browser_credential=True,
+        exclude_broker_credential=True,
+        process_timeout=15,
+    )
+    group = SandboxGroupClient(
+        endpoint_for_region(args.region),
+        credential,
+        subscription_id=args.subscription_id,
+        resource_group=args.resource_group,
+        sandbox_group=args.sandbox_group,
+        transport=RequestsTransport(connection_timeout=10, read_timeout=90),
+        retry_total=0,
+    )
+
     def terminate(_signum, _frame):
         raise KeyboardInterrupt("Termination requested")
+
     signal.signal(signal.SIGTERM, terminate)
     try:
-        evidence = perform(group, args.output, scope, args.credential_connection_id,
-                           expected_cli_version=args.expected_cli_version, pinned_cli=args.pinned_cli)
+        evidence = performer(
+            group,
+            args.output,
+            scope,
+            args.credential_connection_id,
+            expected_cli_version=args.expected_cli_version,
+            pinned_cli=args.pinned_cli,
+        )
     finally:
         group.close()
         credential.close()

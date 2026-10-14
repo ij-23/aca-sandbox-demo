@@ -17,4 +17,6 @@ __pycache__/
 crash.log
 crash.*.log
 .local/
-
+node_modules/
+backend/static/
+*.tsbuildinfo

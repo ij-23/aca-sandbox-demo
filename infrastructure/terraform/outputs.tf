@@ -1,6 +1,6 @@
 output "application_url" {
-  value       = ""
-  description = "Empty during foundation bootstrap; application is gated on a real smoke test."
+  value       = var.application == null ? "" : module.application[0].url
+  description = "Empty during foundation bootstrap; HTTPS URL after approved application deployment."
 }
 output "subscription_id" {
   value       = var.subscription_id

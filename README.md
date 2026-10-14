@@ -2,9 +2,33 @@
 
 **Azure-hosted Open Source Evaluation Demo** — Azure Container Apps Sandboxes + GitHub Copilot Dynamic Workflows.
 
-> **Project specification / deployment blueprint.** This repository is intended to be implemented by a coding agent following [`AGENTS.md`](./AGENTS.md). These instructions describe the intended deployment; infrastructure/app code and commands may not exist yet. Do not treat this README as confirmation of a successful cloud deployment.
+[MIT license](./LICENSE) · [Contributing](./CONTRIBUTING.md)
 
-## What it does
+> **Implementation in progress.** The 23-resource Azure foundation is deployed. The React/FastAPI host, authentication, persistence adapter, platform tests and application image are implemented locally. The genuine minimal Dynamic Workflow passed in ACA on CLI 1.0.97. Application deployment, full A/B/C integration and GitHub publication remain unverified. Live execution is disabled until these gates pass. See [progress](./docs/progress.md) and [compatibility](./docs/compatibility.md) for evidence.
+
+## Developer quick start
+
+Requires Python 3.13, Node 24, uv and Docker. These commands test the platform and preview its empty dashboard; they do not execute fixture code, create Sandboxes or contact Azure:
+
+```sh
+uv venv --python 3.13 .venv
+uv pip sync --python .venv/bin/python --require-hashes requirements-dev.txt
+npm ci --prefix frontend --ignore-scripts
+.venv/bin/python -m pytest backend/tests scripts/tests -q
+.venv/bin/python scripts/export_schemas.py --check
+npm --prefix frontend test
+npm --prefix frontend run build
+LIVE_EXECUTION_ENABLED=false .venv/bin/python -m uvicorn app.main:app \
+  --app-dir backend --host 127.0.0.1 --port 8000 --no-access-log
+```
+
+Open `http://127.0.0.1:8000` for development inspection. This is not the required final Azure deployment. Sign-in requires customer Entra registrations; operational APIs reject anonymous requests. Without Azure storage configuration, health returns 200 and readiness returns 503. There is no production memory-store fallback or fabricated replay.
+
+Build the **application** image with `docker build --platform linux/amd64 -t aca-sandbox-demo:local .`. [Deployment guidance](./docs/deployment.md#local-preparation-and-validation) includes the optional package proxy configuration used in this environment. Never pass credentials as build arguments. CI in [.github/workflows/ci.yml](./.github/workflows/ci.yml) runs platform checks and an image build only; Azure OIDC deployment is not configured yet.
+
+The approved M0-CLI97 test passed on 2026-10-14, including real Copilot AI, branching, live file polling and exact-ID cleanup. The [next prepared test](./docs/pending-approvals.md#m0-c-fail--prepared-not-executed) exercises C’s failed-validation/no-publication branch and requires separate approval. The already-applied foundation plan must not be reapplied.
+
+## Intended live experience
 
 An authenticated user enters a **public GitHub repository URL** into a React dashboard. A Python/FastAPI orchestrator (hosted together with React in one Azure Container App) creates **two isolated ACA Sandboxes simultaneously** from the built-in GitHub Copilot image. Both execute **genuine Copilot Dynamic Workflows**:
 
@@ -108,7 +132,7 @@ Official GitHub references: [Copilot CLI authentication](https://docs.github.com
 - Publicly hosted does **not** mean anonymously usable. Entra auth, quotas/timeouts, URL allowlisting and rate limiting protect against unauthorized or costly runs. Store sanitized results/events in private Blob containers; no secrets in browser, SSE, telemetry or replays.
 - Orchestration is single-process/single-replica MVP. Blob gives event/report persistence, **not automatic recovery of in-flight work after an app restart**. Proper multi-replica customer production would need durable job/worker coordination and further hardening.
 
-## Repository structure (planned)
+## Repository structure and remaining work
 
 ```text
 frontend/                  React + TypeScript + Vite
@@ -124,7 +148,9 @@ AGENTS.md                  coding-agent requirements
 README.md                  deployment and customer onboarding
 ```
 
-## API / live UX (intended)
+The host, dashboard, smoke workflow, report schemas, CI, foundation and [trusted source fixture](./demo-repo/README.md) exist. The fixture has not been executed or published; its tests run only inside a disposable Sandbox. The three workflow extensions and SDK adapter are implemented for live verification. Publication defaults off until its credential/permission gates pass. OIDC deployment and a genuine full-run replay remain gated work. The current [configuration example](./.env.example) contains non-secret names only; the host never reads a Copilot PAT.
+
+## API / live UX
 
 `POST /api/runs`, `GET /api/runs/{id}`, `GET /api/runs/{id}/events` (SSE with reconnect), `POST /api/runs/{id}/remediate`, `POST /api/runs/{id}/cleanup`, and health/readiness endpoints. All operational API paths require user authorization. The display shows Sandboxes A/B independently progressing, exact branch outcomes, real sanitized command logs, an evidence-backed report, then C with a diff, automated new private `{repo}-fixed` publication, and clickable verified GitHub repository URL. Replay is clearly tagged **prerecorded**.
 
@@ -147,7 +173,7 @@ Copilot and cloud timings are nondeterministic. Record one actual successful run
 
 | Symptom | Check |
 |---|---|
-| GitHub Copilot asks for `/login` | Group credential status; token type `github_pat_`, Copilot entitlement; fresh sandbox; correct built-in preset |
+| GitHub Copilot asks for `/login` | Group credential status and entitlement; SDK creation must attach the existing connection with `connections=[connection_id]` alongside `disk="copilot"`; never inject a token or use interactive login |
 | Group not found / sandbox creation denied | Correct tenant, subscription, region; app UAMI `Container Apps SandboxGroup Data Owner` scoped to group |
 | Copilot works but Dynamic Workflow (A/B/C) doesn't | Copilot CLI version, experimental setting if needed, actual extension registration/invocation; check `docs/compatibility.md` |
 | App fails image pull | Image/tag/digest exists in ACR, Container App registry identity and `AcrPull` RBAC |

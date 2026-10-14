@@ -1,4 +1,5 @@
 """Non-secret configuration; explicit gates prevent accidental paid execution."""
+
 import os
 from dataclasses import dataclass
 from uuid import UUID
@@ -23,6 +24,16 @@ class Settings:
     max_run_seconds: int = 900
     event_retention_limit: int = 10000
     publication_owner: str = ""
+    publication_enabled: bool = False
+    sandbox_egress_hosts: tuple[str, ...] = (
+        "github.com",
+        "*.github.com",
+        "*.githubusercontent.com",
+        "*.githubcopilot.com",
+        "default.exp-tas.com",
+        "pypi.org",
+        "files.pythonhosted.org",
+    )
 
     @classmethod
     def from_env(cls):
@@ -31,17 +42,16 @@ class Settings:
             value = os.environ.get(name.upper())
             if value is None:
                 continue
-            if name in ("authorized_users", "allowed_repositories"):
+            if name in ("authorized_users", "allowed_repositories", "sandbox_egress_hosts"):
                 values[name] = tuple(v.strip() for v in value.split(",") if v.strip())
-            elif name == "live_execution_enabled":
+            elif name in ("live_execution_enabled", "publication_enabled"):
                 values[name] = value.lower() == "true"
             elif name in ("max_run_seconds", "event_retention_limit"):
                 values[name] = int(value)
             else:
                 values[name] = value
         settings = cls(**values)
-        for value in (settings.tenant_id, settings.api_client_id, settings.spa_client_id,
-                      *settings.authorized_users):
+        for value in (settings.tenant_id, settings.api_client_id, settings.spa_client_id, *settings.authorized_users):
             if value:
                 UUID(value)
         if not 30 <= settings.max_run_seconds <= 1800:

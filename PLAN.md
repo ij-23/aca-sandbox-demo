@@ -1,10 +1,12 @@
 # Implementation plan — From Untrusted Code to Trusted Decisions
 
-Updated: 2026-10-13. Status: **foundation deployed; plan aligned to three genuine Dynamic Workflows; expanded Milestone 0 proof of viability remains open**.
+Updated: 2026-10-14. Status: **foundation deployed; M0-CLI97 genuine workflow passed; A/B/C implementation prepared; expanded M0 and Azure deployment remain open**.
 
 [AGENTS.md](./AGENTS.md) is authoritative. [README.md](./README.md) remains the customer-facing deployment guide. Track execution in [docs/progress.md](./docs/progress.md); source evidence and unresolved compatibility questions are in [docs/compatibility.md](./docs/compatibility.md).
 
-This plan separates implemented foundation work from proposed application work. The approved foundation deployment created 23 resources on 2026-10-12; resource read-back and eight RBAC assignments were verified. No Container App or sandbox has been deployed and no credential-backed workflow or publication test has run. The current update changes only this plan and the progress checklist. Preserve the existing Terraform configuration, state, inputs and saved plans; do not regenerate or reapply the consumed foundation plan. Any further infrastructure change requires explicit approval.
+The approved foundation deployment created 23 resources on 2026-10-12; resource read-back and eight RBAC assignments were verified. Subsequent separately approved disposable Sandboxes proved SDK creation/exec/upload/deletion and Copilot prompt authentication through explicit provider-connection binding. Every test Sandbox was deleted. The explicitly approved one-Sandbox M0-CLI97 test passed with a genuine registered workflow, real AI/conditional branch and live file polling. Its Sandbox was deleted with exact-ID 404 verification. No Container App or GitHub publication has been deployed.
+
+The current autonomous implementation has added the local React/FastAPI platform, strict report schemas, Entra JWT validation, managed-identity Blob adapter, SSE resume, bounded orchestration/cleanup, CI and a buildable application image. These independent components remain disabled for live execution until the required runtime gates pass. Preserve existing foundation resource definitions, state, inputs and consumed saved plan. An optional application module is now prepared and locally validated, defaulting to no application; do not regenerate or reapply the consumed foundation plan. Any further infrastructure change requires explicit approval.
 
 ## 1. Architecture and boundaries
 
@@ -24,7 +26,7 @@ The presentation message is: **Give every AI agent its own isolated computer.** 
 | ACR | Application image only; never rebuild or publish the sandbox image |
 | GitHub Actions with Azure OIDC | Test the platform, build/push its image, and invoke the approved Terraform deployment path |
 
-No Foundry, Azure OpenAI, AKS, custom sandbox images, extra worker service, database, backend GitHub publisher, or separate publishing credential. The host app needs a Container Apps Managed Environment; the Sandbox Group does not require that linkage. The baseline has no VNet, but the inherited Storage policy now blocks public Blob connectivity; a policy-compatible solution requires separate review and approval before app deployment.
+No Foundry, Azure OpenAI, AKS, custom sandbox images, extra worker service, database, backend GitHub publisher, or separate publishing credential. The host app needs a Container Apps Managed Environment; the Sandbox Group does not require that linkage. The baseline has no VNet. User-resolved Storage networking was verified read-only: publicNetworkAccess Enabled, defaultAction Allow, endpoint reachable. Operator Blob read lacks data permissions; existing app UAMI grants were verified, runtime access awaits deployment. No network change is needed.
 
 The three identities remain distinct: Entra user, app Azure identity, and group-level Copilot PAT. Never attach the app's Azure identity to untrusted execution sandboxes. Repository code runs only in disposable B/C sandboxes. Local and CI tests exercise platform code and explicit unit-test doubles, never execute a submitted repository or the demo fixture's build/tests.
 
@@ -81,18 +83,18 @@ Milestones are sequential gates. Local code passing tests is not a substitute fo
 
 ### Milestone 0 execution sequence after this planning checkpoint
 
-1. Configure a project virtual environment using the existing Python 3.13 interpreter. Resolve the SDK download problem; inspect/install pinned first-party SDK and dependencies. Do not globally upgrade local tools.
+1. Maintain the configured Python 3.13 environment and locked dependencies. SDK 0.1.0b4 and Identity 1.26.0 are installed; signatures and basic live lifecycle were verified. The configured Microsoft package proxy resolved the earlier download issue.
 2. Inspect actual provider schemas and Sandbox Group contracts. Resolve stable versus preview field support, egress IaC ownership, managed identity authentication, and secret-free web authentication before authoring production integration.
 3. Use the previously verified customer subscription/tenant, Sweden Central, `academo` prefix and deployed group recorded in the private [deployment results](./.local/azure-discovery/deployment-results.md). Recheck the exact context before any later approved cloud operation; do not repeat foundation provisioning.
-4. Preserve all existing Terraform artifacts, including the already-applied saved plan. Foundation resource creation/read-back is complete, while Storage connectivity and group limits/egress remain open. No infrastructure changes are authorized by this documentation update.
-5. Await confirmation that the user configured the PAT manually with the updated demo publication settings. Never request its value in chat or place it in IaC/state, Actions, app configuration, or logs. If permissions change, the user updates the group token manually and verification uses fresh sandboxes.
+4. Preserve all existing Terraform artifacts, including the already-applied saved plan. Foundation resource creation/read-back is complete, while app UAMI runtime authorization and group limits/egress remain open. No infrastructure changes are authorized by this documentation update.
+5. Preserve the manually configured PAT. Copilot authentication with the explicit existing provider-connection binding is verified; publication permissions remain unverified. Never request the PAT value or place it in IaC/state, Actions, app configuration or logs. If permissions change, the user updates the group token manually and verification uses fresh Sandboxes.
 6. Prepare a smoke test that creates one labeled disposable `copilot` sandbox; verifies the installed CLI and credential usability; uploads a trusted minimal `.mjs` extension; runs a real agent-backed Dynamic Workflow; checks the run envelope, branch evidence, and fresh structured result; deletes in `finally` and verifies absence. Record cleanup failure separately without losing the original error.
 7. Present the exact smoke action, group, limits, and create/delete scope for approval. Run only after approval. Test capture behavior and failure cleanup. Record actual versions, timings, calls, exit codes, and sanitized evidence in the compatibility ledger.
 8. Implement and exercise the **third genuine Dynamic Workflow PoC**, including a controlled failing-tests branch that emits validation/publication-gate evidence and makes no GitHub write. Keep this inside a separately authorized disposable sandbox; local tests may use explicit doubles only.
 9. Verify official repository creation permissions and the injected credential boundary. Present the exact personal owner, disposable private test-repository name, harmless content, sandbox limits and create/push side effects for separate approval. Only then test private creation and harmless push from inside the sandbox with the same group PAT; verify destination and remote SHA. Retain sanitized evidence and clean up the sandbox under its approved scope. Do not delete the test repository without further explicit approval.
 10. Proceed only when the expanded runtime proof succeeds. If the built-in disk lacks workflow capability or the same credential cannot publish, stop the affected feature; do not switch to a custom disk, prompt imitation, different credential or backend publisher. The C PoC belongs to Milestone 0; complete app-integrated C and dashboard acceptance in Milestone 5.
 
-The existing trusted nonce smoke harness and extension are implemented but unrun against Azure. They do not yet cover the new C publication gates. This update only plans those additions; it does not run smoke, configure credentials or authorize GitHub writes.
+The nonce smoke harness has run against Azure, but stopped at the CLI capability gate before executing its genuine extension. The harness now accepts an explicitly reviewed CLI version and an opt-in, checksum-pinned disposable-local 1.0.97 installation. The approved M0-CLI97 run passed and its authorization is consumed. It does not cover the C publication gates.
 
 ## 3. Infrastructure and deployment ownership
 
@@ -124,13 +126,13 @@ Before each infrastructure apply, role grant, paid-resource creation or credenti
 | Repository | Git initialized; Terraform foundation, nonce smoke harness/extension and local tests implemented; app and A/B/C workflows remain planned |
 | Terraform | Installed 1.15.3, Darwin ARM64; installed provider schemas inspected; foundation applied and read back |
 | Providers | AzureRM 4.81.0 and AzAPI 2.13.0 locked; narrow Sandbox Group embedded-schema exception; stable group creation verified. AzureAD not used in foundation |
-| Python | Homebrew 3.13.16 selected and isolated environment prepared; sandbox SDK installation/inspection remains blocked |
-| Sandbox SDK | PyPI reports `azure-containerapps-sandbox` 0.1.0b4, Python >=3.10; quickstart recommends 3.13+; package download/source inspection did not complete |
+| Python | Python 3.13.16 configured; SDK/Identity installed and verified |
+| Sandbox SDK | Official SDK 0.1.0b4 installed; creation, binding, file transfer/polling, exec and exact-ID cleanup live-verified |
 | Node/npm | 24.13.1 / 11.8.0 installed; select compatible React/Vite versions and lock dependencies during implementation |
 | Azure CLI | 2.83.0; separate `aca` CLI 1.0.0-preview.2 successfully listed deployed group sandboxes and public disks |
-| Copilot CLI | Local 1.0.91 has direct workflow help; the built-in sandbox CLI version and billing eligibility remain unobserved |
-| Containers | Docker client 29.2.1 installed; daemon unavailable; local image checks need a running engine, or later approved CI/ACR build path |
-| Azure target | Subscription/tenant and signed-in User operator verified; foundation deployed in Sweden Central with prefix academo; Storage policy blocks future app Blob access |
+| Copilot CLI | Official pinned 1.0.97 in disposable control directory executed genuine workflow successfully; built-in executable unchanged |
+| Containers | Docker Desktop available; local application image tests run without network/identity |
+| Azure target | Subscription/tenant and signed-in User operator verified; foundation deployed in Sweden Central with prefix academo; Storage networking resolved; app UAMI runtime Blob verification pending |
 | GitHub target | Vetted source fixture, deployment repository/OIDC subject and dedicated personal publication owner still needed; `{repo}-fixed` availability must be checked. Explicit scope approval required for test publication |
 | Copilot account | Dedicated disposable personal owner with eligible Copilot seat; manual fine-grained PAT with Copilot Requests, Repository creation: Write, Contents: Read and write, All repositories. Permission labels/API/git access and same injected token usability remain verification gates |
 | Entra | Authorized user object IDs or carefully handled groups; app-registration rights/consent; verified tenant/audience and authentication flow |
@@ -148,7 +150,7 @@ Before each infrastructure apply, role grant, paid-resource creation or credenti
 | Validation/publication gate | Invalid fix could publish or an AI prompt could bypass checks | Trusted workflow code requires successful build/tests and targeted recheck; failed/missing/timed-out checks skip all writes; observe real failing-tests and passing branches |
 | Destination collision / partial write | Retry overwrites an existing repo or reports false success | Check owner/name/privacy, reconcile ambiguous responses, track created repository identity, verify remote SHA; collisions fail, partial publication is explicit, no automatic remote deletion |
 | Source sanitization | New repo contains old history, secrets or unwanted artifacts | Fresh Git history; checked source manifest including new files, preserved license/attribution, secret/artifact exclusions and post-push verification; do not grant unrelated Workflows permissions to bypass a rejected push |
-| Storage policy deviation | Future app cannot persist reports/diffs before sandbox cleanup | Inherited policy disabled public access and no private endpoint exists; separately review/approve a connectivity solution before app integration or claiming durable C evidence |
+| Storage authorization | Durable reports require app UAMI data access | Current network configuration is reachable. UAMI grants exist at all four containers; verify actual access from deployed host. No network changes authorized or needed |
 | Egress controls | Deny rules break Copilot, clone, package installation, repository creation or push | Build allowlist from official Copilot/GitHub API/git endpoints and locked dependencies; validate TLS/inspection and denied destinations; determine IaC support for persistent policies |
 | SDK output/cancellation limits | Dashboard may lag and timed-out remote work may continue | Observe exec/file semantics; prove polling or supported streaming; explicit deadlines and process termination; delete owned sandbox as final containment |
 | Process restart / creation race | Orphans, lost events or duplicated work | Durable ownership intent, labels and reconciliation; idempotent cleanup; interrupted status; no automatic recovery claim |
@@ -156,7 +158,7 @@ Before each infrastructure apply, role grant, paid-resource creation or credenti
 | Secret-free authentication | Default portal setup creates a client secret | Evaluate documented existing-registration secret-free option and its token-flow tradeoffs; validate before adopting; do not introduce secrets into state to make login work |
 | CI/CD state and bootstrap | Lost state, missing image or competing image owners | Approve durable state strategy, serialize deployments, gate production apply, and use Terraform as image owner |
 | Fifteen-minute timing | Provisioning, dependency and AI latency vary | Small vetted fixture, bounded stages, measure real runs, rehearse, keep honestly labeled genuine replay |
-| Local prerequisite gaps | SDK/schema/image validation cannot complete yet | Resolve package-download error; initialize isolated dependency environments; make container engine available when needed |
+| Local prerequisites | Packages, SDK and Docker now available | Preserve hash-locked dependencies, public-registry lockfiles and proxy overrides; local checks do not establish Azure runtime compatibility |
 
 ## 6. Verification and acceptance criteria
 
@@ -192,8 +194,8 @@ Final acceptance checklist:
 
 ## 7. Next checkpoint
 
-This documentation update is complete when the plan/checklist reflect all three workflows, the conditional C publication contract and expanded evidence gates, while the Terraform artifacts remain unchanged. Next, after user direction, resolve SDK verification and prepare the expanded Milestone 0 PoC. Await PAT configuration confirmation and exact sandbox/test-repository approvals before live tests. Full application work remains behind runtime viability; Storage connectivity additionally blocks app integration. No cloud or GitHub write is performed by this update.
+M0-CLI97 passed. Real SDK adapter and A/B/C extensions are prepared and publication remains disabled. The [M0-C-FAIL scope](./docs/pending-approvals.md#m0-c-fail--prepared-not-executed) awaits a new one-Sandbox approval. Personal publication owner, vetted public fixture and project repository/branch are still needed for exact GitHub and OIDC plans. Entra registration/initial-user and durable state choices were requested. Prepare a saved application deployment plan only with actual auth configuration and a pushed image digest; do not infer deployment approval from local tests.
 
-## Foundation and revised-scope checkpoint — 2026-10-13
+## Foundation and revised-scope checkpoint — 2026-10-13 (historical)
 
 The user previously approved foundation implementation, then explicitly approved applying the exact saved plan. Deployment completed on 2026-10-12: 23 created, 0 changed, 0 destroyed; see [progress](./docs/progress.md) and private [deployment results](./.local/azure-discovery/deployment-results.md). Preserve [academo-swedencentral.tfplan](./infrastructure/terraform/academo-swedencentral.tfplan), SHA-256 `386fceff8f67a42d8e51f20d6bf521b59fc4244a5e8e3186d8cbe76178178622`, as the already-applied artifact; do not reuse or regenerate it. The user now requests plan/checklist alignment to the revised [AGENTS.md](./AGENTS.md) and [README.md](./README.md). C implementation, publication capability and all runtime tests remain incomplete. Prior approval covers no new infrastructure or GitHub action.

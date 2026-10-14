@@ -1,4 +1,5 @@
 """Explicit in-memory test double; never imported by deployed application."""
+
 import copy
 
 

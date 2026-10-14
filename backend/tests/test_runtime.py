@@ -21,6 +21,7 @@ def test_events_persist_before_delivery_and_resume():
         await fresh.emit(identifier, "system", "test.event", token="hidden")
         assert store.logs[identifier][-1]["event_id"] == 11
         assert store.logs[identifier][-1]["payload"]["token"] == "[REDACTED]"
+
     asyncio.run(scenario())
 
 
@@ -28,11 +29,13 @@ def test_no_event_is_delivered_after_failed_persistence():
     class Broken(MemoryStore):
         async def append_event(self, *args):
             raise OSError("TEST DOUBLE")
+
     async def scenario():
         bus = Events(Broken(), 100)
         with pytest.raises(OSError):
             await bus.emit(str(uuid4()), "system", "test.event")
         assert not bus.cache
+
     asyncio.run(scenario())
 
 
@@ -59,9 +62,12 @@ def test_concurrent_roles_and_single_run_admission():
 
     async def scenario():
         async def resolver(*_):
-            return "a"*40
+            return "a" * 40
+
         store, executor = MemoryStore(), Executor()
-        runtime = Orchestrator(Settings(allowed_repositories=("https://github.com/a/b",)), store, Events(store, 100), executor, resolver)
+        runtime = Orchestrator(
+            Settings(allowed_repositories=("https://github.com/a/b",)), store, Events(store, 100), executor, resolver
+        )
         value = await runtime.start("https://github.com/a/b", "test-owner")
         with pytest.raises(HTTPException) as error:
             await runtime.start("https://github.com/a/b", "test-owner")
@@ -71,13 +77,107 @@ def test_concurrent_roles_and_single_run_admission():
         assert result["status"] == "completed"
         assert set(result["reports"]) == {"security", "build"}
         assert executor.cleaned == [value["run_id"]]
+
     asyncio.run(scenario())
 
 
 def test_publication_cannot_claim_success_without_validation():
     with pytest.raises(ValueError):
-        RemediationReport(commit_sha="a"*40, status="passed", checks=[], publication_status="published",
-                          fixed_repository_url="https://github.com/a/b-fixed", fixed_commit_sha="b"*40,
-                          diff="", limitations=[])
+        RemediationReport(
+            commit_sha="a" * 40,
+            status="passed",
+            checks=[],
+            publication_status="published",
+            fixed_repository_url="https://github.com/a/b-fixed",
+            fixed_commit_sha="b" * 40,
+            diff="",
+            limitations=[],
+        )
     with pytest.raises(ValueError):
-        Remediate(finding_id="f1", approved=False, commit_sha="a"*40, destination_owner="a", destination_name="b-fixed")
+        Remediate(
+            finding_id="f1", approved=False, commit_sha="a" * 40, destination_owner="a", destination_name="b-fixed"
+        )
+
+
+def test_stale_remediation_approval_cannot_launch_a_second_attempt():
+    class Executor:
+        calls = 0
+
+        async def run(self, value, role, emit):
+            self.calls += 1
+            return dict(
+                commit_sha=value["commit_sha"],
+                status="failed",
+                checks=[],
+                publication_status="skipped",
+                diff="",
+                limitations=["UNIT TEST DOUBLE"],
+            )
+
+        async def cleanup(self, value):
+            pass
+
+    async def scenario():
+        store, executor = MemoryStore(), Executor()
+        value = dict(
+            run_id=str(uuid4()),
+            owner_id="owner",
+            repository_url="https://github.com/a/b",
+            commit_sha="a" * 40,
+            status="completed",
+            remediation_attempted=False,
+            reports={"security": {"findings": [{"id": "f1", "verification_status": "verified"}]}},
+        )
+        await store.save_run(value)
+        runtime = Orchestrator(
+            Settings(allowed_repositories=(value["repository_url"],), publication_owner="a"),
+            store,
+            Events(store, 100),
+            executor,
+        )
+        approval = Remediate(
+            finding_id="f1", approved=True, commit_sha="a" * 40, destination_owner="a", destination_name="b-fixed"
+        )
+        await runtime.remediate(value, approval)
+        with pytest.raises(HTTPException) as failure:
+            await runtime.remediate(value, approval)  # Same stale pre-approval snapshot.
+        assert failure.value.status_code == 409
+        await runtime.tasks[value["run_id"]]
+        with pytest.raises(HTTPException):
+            await runtime.remediate(value, approval)
+        assert executor.calls == 1
+
+    asyncio.run(scenario())
+
+
+def test_wrong_publication_destination_is_rejected_before_persistence():
+    class Executor:
+        async def run(self, value, role, emit):
+            return dict(
+                commit_sha=value["commit_sha"],
+                status="passed",
+                publication_status="published",
+                fixed_repository_url="https://github.com/other/repo-fixed",
+                fixed_commit_sha="b" * 40,
+                diff="",
+                limitations=[],
+                checks=[
+                    dict(name=name, status="passed", exit_code=0, duration_ms=1)
+                    for name in ("build", "pytest", "localhost.health", "targeted.recheck", "source.integrity")
+                ],
+            )
+
+    async def scenario():
+        store = MemoryStore()
+        runtime = Orchestrator(Settings(), store, Events(store, 100), Executor())
+        value = dict(
+            run_id=str(uuid4()),
+            commit_sha="a" * 40,
+            reports={},
+            approval={"destination_owner": "a", "destination_name": "b-fixed"},
+        )
+        with pytest.raises(ValueError, match="approved destination"):
+            await runtime._role(value, "remediation")
+        assert store.reports == {}
+
+    asyncio.run(scenario())
