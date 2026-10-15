@@ -1,6 +1,6 @@
 # Public GitHub repository support — implementation plan
 
-Updated: 2026-10-14. **Proposed capability; not implemented or security-verified.**
+Updated: 2026-10-15. **Deferred; not the active implementation plan.** The user restored the original trusted-fixture scope on `main`. Partial experimental work is preserved only on `feature/public-repository-support`; do not merge or continue it. The original [requirements](../AGENTS.md) and [acceptance checklist](./acceptance.md) govern active work. The design below is retained for reference and does not enable public execution.
 
 ## Outcome
 

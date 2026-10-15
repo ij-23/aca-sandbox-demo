@@ -4,6 +4,10 @@
 
 ## 0. Outcome / non-negotiable scope
 
+### Trusted-fixture scope restored — 2026-10-15
+
+Continue the original trusted-fixture demo on `main`. Arbitrary public repository support is deferred; preserve `feature/public-repository-support` as an experimental branch and do not merge or continue it. The original milestones below and [acceptance checklist](docs/acceptance.md) govern active work. Preserve editable publication destinations, stop-and-retain behavior, existing credentials and LOCAL Terraform state. The user explicitly authorized deleting only the two experimental Sandbox Groups and their four scoped RBAC assignments; this exception does not authorize destruction of original or unrelated infrastructure.
+
 ### Editable publication repository — 2026-10-14
 
 The Fix confirmation defaults to `{original-repo}-fixed` but lets the user choose a different new private repository name. Bind the validated name to the persisted approval and use it throughout Workflow C creation, push and remote verification. The configured personal owner remains fixed; reject the source destination and existing repositories, never overwrite. Git branch remains `main`. This supersedes mandatory fixed-name wording elsewhere; `{repo}-fixed` now denotes the default only.
