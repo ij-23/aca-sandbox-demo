@@ -217,6 +217,7 @@ Copilot and cloud timings are nondeterministic. Record one actual successful run
 | Copilot works but Dynamic Workflow (A/B/C) doesn't | Copilot CLI version, experimental setting if needed, actual extension registration/invocation; check `docs/compatibility.md` |
 | App fails image pull | Image/tag/digest exists in ACR, Container App registry identity and `AcrPull` RBAC |
 | UI loads but calls return 401/403 | Entra authentication registration, audience/issuer, user allowlist and API authorization |
+| Microsoft session expired or renewal needs interaction | Select **Sign in again**. **Sign out** remains available without a valid access token. Successful silent renewal is automatic; persistent rejection stops polling until sign-in. Signing out does not cancel running workflows. Reload saved history after signing in. |
 | SSE is interrupted | Container App revision/restart, SSE ID replay from saved event history, app replica setting |
 | Missing reports after restart | Blob connectivity/RBAC, retention, run recovery limitation |
 | Slow build or timeout | Repo fixture size, dependency constraints, sandbox limits, bounded task timeouts |
